@@ -1,21 +1,45 @@
 from astropy.io import fits
-from astropy.stats import sigma_clip, mad_std
+from astropy import stats
 import numpy as np
 from pathlib import Path
 from typing import Callable
 
 
+def build_outlier_filter(filter_method):
+    match filter_method:
+        case 'sigma_clip':
+            def sigma_clip(data, sigma):
+                return stats.sigma_clip(
+                    data,
+                    sigma=sigma,
+                    stdfunc=stats.mad_std,
+                    axis=0
+                )
+            return sigma_clip
+
+        case 'winsorize_mean':
+            def winsorize_mean():
+                return
+            return winsorize_mean
+
+        case 'minmax_percentile':
+            def minmax_percentile():
+                return
+            return minmax_percentile
+
+
 def stack(hdul: fits.HDUList,
-          outlier_rejection: Callable[[np.ndarray], np.ndarray],
+          outlier_filter: Callable[[np.ndarray], np.ndarray],
           stack_method: Callable[[list], np.ndarray]) -> np.ndarray:
     """
-    Stack calibrated and registered data from all images
+    Coordinate functions in the stacking process
+    to stack calibrated and registered data from all images.
 
     :param hdul: list of FITS HDUs 
     :type data_folder: HDUList
 
-    :param outlier_rejection: outlier-rejection function applied to data
-    :type outlier_rejection: function
+    :param outlier_filter: outlier-rejection function applied to data
+    :type outlier_filter: function
 
     :param stack_method: stacking function applied to data
     :type stack_method: function
@@ -26,7 +50,7 @@ def stack(hdul: fits.HDUList,
     inlying_data = []
     for hdu in hdul:
         data = hdu.data  # type: ignore
-        inlying_i = outlier_rejection(data)
+        inlying_i = outlier_filter(data)
 
         inlying_data.append(inlying_i)
 
