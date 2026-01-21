@@ -10,7 +10,7 @@ def inspect_hdr(file_path):
     with fits.open(file) as hdul:
         hdr = hdul[0].header  # type: ignore[attr-defined]
 
-    return hdr
+    return repr(hdr)
 
 
 # To easily run from terminal
