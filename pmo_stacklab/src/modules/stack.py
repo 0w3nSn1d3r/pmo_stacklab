@@ -1,58 +1,54 @@
 from astropy.io import fits
 from astropy import stats
+from scipy.stats import mstats
 import numpy as np
 from pathlib import Path
 from typing import Callable
 
 
-def build_outlier_filter(filter_method):
-    match filter_method:
-        case 'sigma_clip':
-            def sigma_clip(data, sigma):
-                return stats.sigma_clip(
-                    data,
-                    sigma=sigma,
-                    stdfunc=stats.mad_std,
-                    axis=0
-                )
-            return sigma_clip
+class Stack:
+    def __init__(self, outlier_filter, stacking_method):
+        # Prevent case-sensitive errors
+        outlier_filter = outlier_filter.lower()
 
-        case 'winsorize_mean':
-            def winsorize_mean():
-                return
-            return winsorize_mean
+        # Assign specified outlier filtering and stacking methods;
+        # allows for customizable stacking process
+        match outlier_filter:
+            case 'sigma_clip':
+                self.outlier_filter = self.sigma_clip
+            case 'winsorize':
+                self.outlier_filter = self.winsorize
+            case 'percentile_clip':
+                self.outlier_filter = self.percentile_clip
+            case 'none':
+                self.outlier_filter = None
 
-        case 'minmax_percentile':
-            def minmax_percentile():
-                return
-            return minmax_percentile
+        match stacking_method:
+            case 'median':
+                self.stacking_method = self.median
+            case 'mean':
+                self.stacking_method = self.mean
+            case 'iv_weighted_mean':
+                self.stacking_method = self.iv_weighted_mean
+            case 'biweight_mean':
+                self.stacking_method = self.biweight_mean
 
+    def stack_data(self, data: fits.HDUList) -> np.ndarray:
+        """
+        Coordinate functions in the stacking process
+        to stack calibrated and registered data from all images.
 
-def stack(hdul: fits.HDUList,
-          outlier_filter: Callable[[np.ndarray], np.ndarray],
-          stack_method: Callable[[list], np.ndarray]) -> np.ndarray:
-    """
-    Coordinate functions in the stacking process
-    to stack calibrated and registered data from all images.
+        :param data: list of FITS HDUs 
+        :type data: HDUList
 
-    :param hdul: list of FITS HDUs 
-    :type data_folder: HDUList
+        :return: stacked pixel values for final image
+        """
+        inlying_data = []
+        for hdu in data:
+            data = hdu.data  # type: ignore
+            inlying_i = self.outlier_filter(data)
 
-    :param outlier_filter: outlier-rejection function applied to data
-    :type outlier_filter: function
+            inlying_data.append(inlying_i)
 
-    :param stack_method: stacking function applied to data
-    :type stack_method: function
-
-    :return: stacked pixel values for final image
-    """
-
-    inlying_data = []
-    for hdu in hdul:
-        data = hdu.data  # type: ignore
-        inlying_i = outlier_filter(data)
-
-        inlying_data.append(inlying_i)
-
-    stacked_data = stack_method(inlying_data)
-    return stacked_data
+        stacked_data = self.stack_method(inlying_data)
+        return stacked_data
