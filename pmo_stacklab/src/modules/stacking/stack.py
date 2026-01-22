@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Stack:
-    def __init__(self, outlier_filter, stacking_method):
+    def __init__(self, outlier_filter: str, stacking_method: str):
         # Prevent case-sensitive errors
         outlier_filter = outlier_filter.lower()
 
@@ -47,9 +47,10 @@ class Stack:
 
         :return: stacked pixel values for final image
         """
-        inlying_data = []
+
+        inlying_data = np.ndarray([])
         for hdu in data:
-            data = hdu.data  # type: ignore
+            data = hdu.data
 
             # Don't filter if 'none' is specified
             if self.outlier_filter:
