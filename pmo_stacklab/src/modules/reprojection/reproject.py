@@ -4,12 +4,39 @@ from astropy.nddata import CCDData
 
 
 class Reproject:
+    """
+    Contains all reprojection coordination logic,
+    including the selection of alignment and 
+    registration functions
+    """
+
     def __init__(self, register: str, align: str):
+        """
+        Assigns the specified registration and alignment
+        methods to the general register and align
+        attributes of the class 
+
+        :param self: reference to the Reproject class
+
+        :param register: specifies which method to use
+        for image registration; can be either "triangulate",
+        "feature-match", "logpolar-match", or "plate-solve"
+        :type register: str
+
+        :param align: specifies which method to use
+        for image alignment; must be either "bilinear",
+        "lanzcos", "area-overlap", or "flux-conserving"
+        :type align: str
+
+        :raises: ValueError if register or align are not
+        selected from given options
+        """
+
         # Prevent case errors
         register = register.lower()
         align = align.lower()
 
-        # Define registration and alignment functions as specified;
+        # Assign registration and alignment functions as specified;
         # allow for stack pipeline customizability
         match register:
             case 'triangulate':
