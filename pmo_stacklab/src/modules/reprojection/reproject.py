@@ -43,8 +43,8 @@ class Reproject:
                 self.register = Register.triangulation
             case 'feature-match':
                 self.register = Register.feature_match
-            case 'logpolar-match':
-                self.register = Register.logpolar_match
+            case 'fourier-match':
+                self.register = Register.fourier_match
             case 'plate-solve':
                 self.register = Register.plate_solve
             case _:

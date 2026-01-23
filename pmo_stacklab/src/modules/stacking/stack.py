@@ -48,7 +48,7 @@ class Stack:
         :return: stacked pixel values for final image
         """
 
-        inlying_data = np.ndarray([])
+        inlying_data = np.array([])
         for hdu in data:
             data = hdu.data
 
