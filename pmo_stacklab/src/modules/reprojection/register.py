@@ -16,6 +16,25 @@ class Register:
 
     @staticmethod
     def fourier_match(data: CCDData) -> CCDData:
+        """
+        Estimate the transformation matrix
+        from each frame to a chosen standard
+        reference image; reference is chosen
+        based to have least distortion according to
+        coefficients in FITS header; transformation
+        is estimated using both log-polar
+        and linear Fourier phase correlation
+
+        :param data: contains image pixel value data;
+        must be 3D and is expected to be calibrated
+        :type data: CCDData
+
+        :return: list of transformation matrices
+        ordered the same as input frames;
+        shape is (data.shape[1] - 1, data.shape[1] - 1)
+        :rtype: CCDData
+        """
+
         # Select reference image based on lowest
         # magnitude distortion vector
         reference_image = calc_reference_img(data)
@@ -45,6 +64,7 @@ class Register:
                 scale=scale,
                 rotation=rotation,
                 translation=trans_vec
+                dimensionality=data.shape[1]-1
             )
 
             registration_matrices.append(transform)
