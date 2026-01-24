@@ -2,20 +2,49 @@ from astropy.nddata import CCDData
 from skimage import transform
 from skimage.registration import phase_cross_correlation
 import numpy as np
+import astroalign
 from utils import calc_reference_img
 
 
 class Register:
     @staticmethod
-    def triangulate(data: CCDData) -> CCDData:
-        pass
+    def triangulate(data: CCDData) -> list:
+        """
+        Estiamtes transformation from each
+        data frame to a chosen reference image
+        by matching 3-point asterisms
+        between images. Uses astroalign's
+        find_transform function
+
+        :param data: contains image pixel-value
+        data; must be 3D and is expected to be
+        calibrated
+        :type data: CCDData
+
+        :return: contains 2D arrays
+        encoding transformations from 
+        image frames to a reference image;
+        order corresponds to that of data.
+        2D arrays are of shape(data[1]-1, data[1]-1)
+        :rtype: list
+        """
+        # Select reference image based on
+        # min distortion magnitude
+        reference_image = calc_reference_img(data)
+
+        # Estiamate transform from each
+        # frame to reference
+        registration_matrices = []
+        for frame in data:
+            transform, mask = astroalign.find_transform(
+                reference_image, frame
+            )
+            registration_matrices.append(transform)
+
+        return registration_matrices
 
     @staticmethod
-    def feature_match(data: CCDData) -> CCDData:
-        pass
-
-    @staticmethod
-    def fourier_match(data: CCDData) -> CCDData:
+    def fourier_match(data: CCDData) -> list:
         """
         Estimate the transformation matrix
         from each frame to a chosen standard
@@ -29,14 +58,16 @@ class Register:
         must be 3D and is expected to be calibrated
         :type data: CCDData
 
-        :return: list of transformation matrices
-        ordered the same as input frames;
-        shape is (data.shape[1] - 1, data.shape[1] - 1)
+        :return: contains 2D arrays
+        encoding transformations from 
+        image frames to a reference image;
+        order corresponds to that of data.
+        2D arrays are of shape(data[1]-1, data[1]-1)
         :rtype: CCDData
         """
+        # Select reference image based on
+        # min distortion magnitude
 
-        # Select reference image based on lowest
-        # magnitude distortion vector
         reference_image = calc_reference_img(data)
 
         registration_matrices = []
@@ -68,6 +99,7 @@ class Register:
             )
 
             registration_matrices.append(transform)
+            return registration_matrices
 
     @staticmethod
     def plate_solve(data: CCDData) -> CCDData:
