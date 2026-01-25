@@ -3,7 +3,7 @@ from skimage import transform
 from skimage.registration import phase_cross_correlation
 import numpy as np
 import astroalign
-from utils import calc_reference_img
+from utils import select_reference
 
 
 class Register:
@@ -30,7 +30,7 @@ class Register:
         """
         # Select reference image based on
         # min distortion magnitude
-        reference_image = calc_reference_img(data)
+        reference_image = select_reference(data)
 
         # Estiamate transform from each
         # frame to reference
@@ -68,7 +68,7 @@ class Register:
         # Select reference image based on
         # min distortion magnitude
 
-        reference_image = calc_reference_img(data)
+        reference_image = select_reference(data)
 
         registration_matrices = []
         for frame in data:
