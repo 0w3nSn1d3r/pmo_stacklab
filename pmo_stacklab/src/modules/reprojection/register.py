@@ -17,7 +17,7 @@ class Register:
     def build_triangulate() -> function:
         def triangulate(data: CCDData) -> list:
             """
-            Estiamtes transformation from each
+            Estimates transformation from each
             data frame to a chosen reference image
             by matching 3-point asterisms
             between images. Uses astroalign's

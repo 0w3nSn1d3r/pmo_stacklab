@@ -1,5 +1,3 @@
-from align import Align
-from register import Register
 from astropy.nddata import CCDData
 
 
@@ -10,58 +8,12 @@ class Reproject:
     registration functions
     """
 
-    def __init__(self, register: str, align: str):
-        """
-        Assigns the specified registration and alignment
-        methods to the general register and align
-        attributes of the class 
-
-        :param self: reference to the Reproject class
-
-        :param register: specifies which method to use
-        for image registration; can be either "triangulate",
-        "feature-match", "logpolar-match", or "plate-solve"
-        :type register: str
-
-        :param align: specifies which method to use
-        for image alignment; must be either "bilinear",
-        "lanzcos", "area-overlap", or "flux-conserving"
-        :type align: str
-
-        :raises: ValueError if register or align are not
-        selected from given options
-        """
-
-        # Prevent case errors
-        register = register.lower()
-        align = align.lower()
-
+    def __init__(self, register: function, align: function):
         # Assign registration and alignment functions as specified;
         # allow for stack pipeline customizability
-        match register:
-            case 'triangulate':
-                self.register = Register.triangulation
-            case 'feature-match':
-                self.register = Register.feature_match
-            case 'fourier-match':
-                self.register = Register.fourier_match
-            case 'plate-solve':
-                self.register = Register.plate_solve
-            case _:
-                raise ValueError(
-                    'Function register() must be a string of value'
-                    '"triangulate", "feature-match", "logpolar-match", or "plate-solve"'
-                )
 
-        match align:
-            case 'bilinear':
-                self.align = Align.bilinear
-            case 'lanczos':
-                self.align = Align.lanczos
-            case 'area-overlap':
-                self.align = Align.area_overlap
-            case 'flux-conserving':
-                self.align = Align.flux_conserving
+        self.register = register
+        self.align = align
 
     def reproject(self, data: CCDData) -> CCDData:
         """

@@ -1,43 +1,17 @@
 from astropy.io import fits
-from outlier_filters import OutlierFilters
-from stack_methods import StackMethods
+from astropy.nddata import CCDData
 import numpy as np
 
 
 class Stack:
-    def __init__(self, outlier_filter: str, stacking_method: str):
-        # Prevent case-sensitive errors
-        outlier_filter = outlier_filter.lower()
-
+    def __init__(self, outlier_filter: function, stack_method: function):
         # Assign specified outlier filtering and stacking methods;
         # allows for customizable stacking process
-        match outlier_filter:
-            case 'sigma_clip':
-                self.outlier_filter = OutlierFilters.sigma_clip
 
-            case 'winsorize':
-                self.outlier_filter = OutlierFilters.winsorize
+        self.outlier_filter = outlier_filter
+        self.stack_method = stack_method
 
-            case 'percentile_clip':
-                self.outlier_filter = OutlierFilters.percentile_clip
-
-            case 'none':
-                self.outlier_filter = None
-
-        match stacking_method:
-            case 'median':
-                self.stacking_method = StackMethods.median
-
-            case 'mean':
-                self.stacking_method = StackMethods.mean
-
-            case 'iv_weighted_mean':
-                self.stacking_method = StackMethods.iv_weighted_mean
-
-            case 'biweight_mean':
-                self.stacking_method = StackMethods.biweight_mean
-
-    def stack_data(self, data: fits.HDUList) -> np.ndarray:
+    def stack_data(self, data: fits.HDUList) -> CCDData:
         """
         Coordinate functions in the stacking process
         to stack calibrated and registered data from all images.
@@ -46,6 +20,7 @@ class Stack:
         :type data: HDUList
 
         :return: stacked pixel values for final image
+        :rtype: CCDData
         """
 
         inlying_data = np.array([])
