@@ -4,7 +4,7 @@ from modules.calibration.calibrate import Calibrate
 from modules.reprojection.reproject import Reproject
 from modules.stacking.stack import Stack
 from modules.post_processing.post_process import PostProcess
-from utils.folder2fits import parse_data_folder
+from pmo_stacklab.src.utils.folder2ccd import parse_data_folder
 
 
 def calc_final_img(
