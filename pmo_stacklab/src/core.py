@@ -37,10 +37,10 @@ def calc_final_img(
     """
 
     all_data = parse_data_folder(folder_path)
-    lights = all_data['light']
-    darks = all_data['dark']
-    biases = all_data['bias']
-    flats = all_data['flat']
+    lights = all_data['lights']
+    darks = all_data['darks']
+    biases = all_data['biases']
+    flats = all_data['flats']
 
     calibrated = calibrater.calibrate(lights, darks, biases, flats)
     reprojected = reprojecter.reproject(calibrated)
