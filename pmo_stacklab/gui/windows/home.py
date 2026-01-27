@@ -1,6 +1,6 @@
 from tkinter import ttk, filedialog
 import tkinter as tk
-import frames.home as home
+import gui.frames as frames
 
 
 class HomeWindow:
@@ -10,10 +10,10 @@ class HomeWindow:
         # One phase of processing per tab for clarity
         tabs = ttk.Notebook(root)
 
-        upload_tab = home.UploadFrame(root)
-        calibrate_tab = home.CalibrateFrame(root)
-        stack_tab = home.StackFrame(root)
-        postprocess_tab = home.PostProcessFrame(root)
+        upload_tab = frames.UploadFrame(root)
+        calibrate_tab = frames.CalibrateFrame(root)
+        stack_tab = frames.StackFrame(root)
+        postprocess_tab = frames.PostProcessFrame(root)
 
         tabs.add(upload_tab, text='Upload')
         tabs.add(calibrate_tab, text='Calibrate')
@@ -21,5 +21,5 @@ class HomeWindow:
         tabs.add(postprocess_tab, text='Post Process')
 
         # Home frame for introduction to StackLab
-        home_frame = home.HomeFrame(root)
+        home_frame = frames.HomeFrame(root)
         home_frame.pack()

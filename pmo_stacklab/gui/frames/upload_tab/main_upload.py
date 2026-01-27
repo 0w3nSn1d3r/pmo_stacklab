@@ -23,17 +23,3 @@ class UploadFrame(ttk.Frame):
             filter_folder = filedialog.askdirectory(
                 title=f'({i}) Select Folder Containing Image Files of Same Filter (.FITS)'
             )
-
-
-class CalibrateFrame(ttk.Frame):
-    def __init__(self, root):
-        super().__init__(root)
-
-        mainframe = ttk.Frame(root)
-
-
-class StackFrame(ttk.Frame):
-    def __init__(self, root):
-        super().__init__(root)
-
-        mainframe = ttk.Frame(root)
