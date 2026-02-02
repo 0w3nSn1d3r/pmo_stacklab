@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport">
+    <title>StackLab | Reproject</title>
+</head>
+<body> 
+    <h1>Reproject</h1>
+    <div class="content">
+        <div>
+            <form>
+                <h2>Registration</h2>
+                <fieldset class='method-opts'>
+                    <legend>Select Registration Method</legend>
+                    <div>
+                        <input type="radio" value="plate-solve" name="reg-method" checked required>
+                        <label for="plate-solve">Plate Solve</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="fourier-match" name="reg-method">
+                        <label for="fourier-match">Fourier Match</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="triangulate" name="reg-method">
+                        <label for="triangulate">Triangulate</label>
+                    </div>
+                    <button type="submit">Submit</button>
+                </fieldset>
+            </form>
+
+            <form>
+                <h2>Alignment</h2>
+                <fieldset class='method-opts'>
+                    <legend>Select Alignment Method</legend>
+                    <div>
+                        <input type="radio" value="plate-solve" name="align-method" checked required>
+                        <label for="plate-solve">Plate Solve</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="fourier-match" name="align-method">
+                        <label for="fourier-match">Fourier Match</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="triangulate" name="align-method">
+                        <label for="triangulate">Triangulate</label>
+                    </div>
+                    <button type="submit">Submit</button>
+                </fieldset>
+            </form>
+        </div>
+
+        <div>
+            <form>
+                <h2>Registration Parameters</h2>
+                <fieldset class='param-opts'>
+                    <legend>Select Registration Parameters</legend>
+                    <div>
+                        <input type="radio" value="plate-solve" name="reg-params" checked required>
+                        <label for="plate-solve">Plate Solve</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="fourier-match" name="reg-params">
+                        <label for="fourier-match">Fourier Match</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="triangulate" name="reg-params">
+                        <label for="triangulate">Triangulate</label>
+                    </div>
+                    <button type="submit">Submit</button>
+                </fieldset>
+            </form>
+
+            <form>
+                <h2>Alignment</h2>
+                <fieldset class='method-opts'>
+                    <legend>Select Alignment Method</legend>
+                    <div>
+                        <input type="radio" value="plate-solve" name="align-params" checked required>
+                        <label for="plate-solve">Plate Solve</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="fourier-match" name="align-params">
+                        <label for="fourier-match">Fourier Match</label>
+                    </div>
+
+                    <div>
+                        <input type="radio" value="triangulate" name="align-params">
+                        <label for="triangulate">Triangulate</label>
+                    </div>
+                    <button type="submit">Submit</button>
+                </fieldset>
+            </form>
+        </div>
+
+        <div class="preview">
+            <h2>PREVIEW</h2>
+        </div>
+    </div> 
+    <nav class="main-nav"></nav>
+</body>
+</html>

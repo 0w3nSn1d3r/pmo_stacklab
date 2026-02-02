@@ -76,7 +76,6 @@ class Register:
             """
             # Select reference image based on
             # min distortion magnitude
-
             reference_image = select_reference(data)
 
             registration_matrices = []
