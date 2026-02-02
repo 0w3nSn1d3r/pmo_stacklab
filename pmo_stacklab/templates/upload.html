@@ -4,4 +4,50 @@
         <meta charset="UTF-8">
         <title>PMO StackLab | Upload</title>
     </head>
+
+    <body>
+        <div class="content">
+            <h1>Upload</h1>
+
+            <div>
+                <h2>Select Frame Folders
+                    <span>
+                        <details class="info">
+                            <summary>&#xF433;</summary>
+                            Select a FOLDER containing all frames
+                            in .FITS file format. Light and flat frames
+                            should contain subfolders for all filters, even
+                            if only one (or none) was used. For example,
+                            uploaded folders should be of the following form:
+                            folder/&lt;filter folders&gt;/&lt;frame files (.FITS)&gt;
+                        </details></span></h2>
+                <ol>
+                    <li>
+                        <button>Select Lights</button>
+                    </li>
+
+                    <li>
+                        <button>Select Darks</button>
+                    </li>
+
+                    <li>
+                        <button>Select Biases</button>
+                    </li>
+
+                    <li>
+                        <button>Select Flats</button>
+                    </li>
+                </ol>
+            </div>
+
+            <div>
+                <h2>Preview</h2>
+                <div id="lights-preview"></div>
+                <div id="darks-preview"></div>
+                <div id="biases-preview"></div>
+                <div id="flats-preview"></div>
+            </div>
+        </div>
+        <nav id="navbar"></nav>
+    </body>
 </html>
