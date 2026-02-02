@@ -1,6 +1,6 @@
 from tkinter import ttk
-import tkinter as tk
+from tkinter import *
 from gui.windows.home import HomeWindow
 
-root = tk.root()
+root = Tk()
 HomeWindow(root)
