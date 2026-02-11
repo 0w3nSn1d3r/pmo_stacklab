@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 
 
-def parse_data_folder(folder: Path) -> dict:
+def folder2ccd(folder: Path) -> dict:
     """
     Extracts FITS files from folders
     and converts them to CCDData objs;

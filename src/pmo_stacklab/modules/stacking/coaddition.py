@@ -3,7 +3,7 @@ from astropy import stats
 import numpy as np
 
 
-class StackMethods:
+class Coaddition:
     """
     Encapsulates all factory functions for stacking methods;
     all methods return a reference to a configured stack

@@ -1,13 +1,13 @@
 from astropy.nddata import CCDData
 from pathlib import Path
-from modules.calibration.calibrate import Calibrate
-from modules.reprojection.reproject import Reproject
-from modules.stacking.stack import Stack
-from modules.post_processing.post_process import PostProcess
-from pmo_stacklab.src.utils.folder2ccd import parse_data_folder
+from modules.calibration import Calibrate
+from modules.reprojection import Reproject
+from modules.stacking import Stack
+from modules.post_processing import PostProcess
+from _utils import folder2ccd
 
 
-def calc_final_img(
+def calc_img(
         folder_path: Path,
         calibrater: Calibrate,
         reprojecter: Reproject,
@@ -52,7 +52,7 @@ def calc_final_img(
     """
 
     # Extract CCDData from folder
-    all_data = parse_data_folder(folder_path)
+    all_data = folder2ccd(folder_path)
     lights = all_data['lights']
     darks = all_data['darks']
     biases = all_data['biases']
