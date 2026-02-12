@@ -3,5 +3,5 @@ from skimage.transform import SimilarityTransform
 
 
 # TO-DO
-def handle_wcs(transform: SimilarityTransform, wcs: WCS):
+def transformation(transform: SimilarityTransform, wcs: WCS):
     pass

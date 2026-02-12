@@ -1,9 +1,7 @@
 from astropy.nddata import CCDData
-from skimage import transform
 from skimage.registration import phase_cross_correlation
-import numpy as np
 import astroalign
-from pmo_stacklab.src.modules.reprojection.utils.select_reference import select_reference
+from _utils import select_reference
 
 
 class Register:
