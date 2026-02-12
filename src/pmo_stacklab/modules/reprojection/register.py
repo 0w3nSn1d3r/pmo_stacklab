@@ -1,5 +1,6 @@
 from astropy.nddata import CCDData
 from skimage.registration import phase_cross_correlation
+from skimage.transform import SimilarityTransform
 import astroalign
 from _utils import select_reference
 
@@ -98,10 +99,10 @@ class Register:
                     reference_image, data)
 
                 # Create transformation matrix for alignment
-                transform = transform.SimilarityTransform(
+                transform = SimilarityTransform(
                     scale=scale,
                     rotation=rotation,
-                    translation=trans_vec
+                    translation=trans_vec,
                     dimensionality=data.shape[1]-1
                 )
 
