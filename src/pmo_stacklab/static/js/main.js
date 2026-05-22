@@ -27,18 +27,21 @@ class ConfigMenu extends HTMLFormElement {
     constructor(subproc) {
         super();
         this.name = subproc['name'];
+        this.method = 'post';
+        this.action = '' // Flask compile_data endpoint
         this.operators = subproc['operators'];
 
-        // Create the menu title
         const fieldset = document.createElement('fieldset');
         const legend = document.createElement('legend');
         const title = document.createTextNode(`Select ${this.name}`);
+        const submit_button = document.createElement(button);
+        submit_button.type = 'submit';
 
         legend.appendChild(title);
         fieldset.appendChild(legend);
-
-        // Create the submit button
-        const submit_button = document.createElement(button);
-        submit_button.type = 'submit';
+        this.appendChild(fieldset);
+        this.appendChild(submit_button);
     }
 }
+
+customElements.define('config-menu', ConfigMenu, { extends: 'form' })
