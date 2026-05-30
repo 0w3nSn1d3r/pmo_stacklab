@@ -1,10 +1,15 @@
-"""Entry point: ``python -m pmo_stacklab`` launches the development server."""
-from .app.factory import build_app
+"""Entry point: ``python -m pmo_stacklab`` launches the development server.
+
+This stays deliberately thin -- it simply delegates to
+:func:`pmo_stacklab.app.lifecycle.run`, which owns how the app is launched (and,
+in future, torn down). Building the app itself lives in
+:func:`pmo_stacklab.app.factory.build_app`.
+"""
+from .app.lifecycle import run
 
 
 def main():
-    app = build_app()
-    app.run(debug=True)
+    run()
 
 
 if __name__ == "__main__":
