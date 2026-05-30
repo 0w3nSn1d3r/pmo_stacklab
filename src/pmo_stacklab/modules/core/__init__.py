@@ -12,5 +12,6 @@ be superseded by the generalized endpoint.)
 """
 from .image_data import ImageData
 from .metadata_policy import MetadataPolicy
+from .process import Operator, Process, sequential
 
-__all__ = ["ImageData", "MetadataPolicy"]
+__all__ = ["ImageData", "MetadataPolicy", "Operator", "Process", "sequential"]
