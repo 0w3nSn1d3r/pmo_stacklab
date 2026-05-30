@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pmo_stacklab"
+version = "0.1.0"
+description = "PMO StackLab - interactive, pedagogical astrophotography image-stacking software."
+readme = "docs/README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0",
+    "numpy>=1.26",
+    "astropy>=6.0",
+    "scipy>=1.11",
+    "scikit-image>=0.22",
+    "ccdproc>=2.4",
+    "astroalign>=2.5",
+]
+
+[project.scripts]
+pmo-stacklab = "pmo_stacklab.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
