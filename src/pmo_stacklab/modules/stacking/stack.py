@@ -1,10 +1,12 @@
+from typing import Callable
+
 from astropy.io import fits
 from astropy.nddata import CCDData
 import numpy as np
 
 
 class Stack:
-    def __init__(self, outlier_filter: function, stack_method: function):
+    def __init__(self, outlier_filter: Callable, stack_method: Callable):
         # Assign specified outlier filtering and stacking methods;
         # allows for customizable stacking process
 

@@ -1,3 +1,5 @@
+from typing import Callable
+
 from astropy.nddata import CCDData
 import numpy as np
 
@@ -5,10 +7,10 @@ import numpy as np
 class PostProcess:
     def __init__(
             self,
-            background_modeling: function,
-            color_map: function,
-            stretch: function,
-            intensity_scaling: function,
+            background_modeling: Callable,
+            color_map: Callable,
+            stretch: Callable,
+            intensity_scaling: Callable,
     ):
         self.background_modeling = background_modeling
         self.color_map = color_map

@@ -1,6 +1,6 @@
 from astropy.nddata import CCDData
 from astropy import stats
-from typing import Tuple
+from typing import Tuple, Callable
 from scipy.stats import mstats
 import numpy as np
 
@@ -13,7 +13,7 @@ class OutlierFilters:
     """
 
     @staticmethod
-    def build_sigma_clip(sigma: float) -> function:
+    def build_sigma_clip(sigma: float) -> Callable:
         def sigma_clip(data: CCDData) -> CCDData:
             """
             Iteratively mask all input data values
@@ -37,7 +37,7 @@ class OutlierFilters:
         return sigma_clip
 
     @staticmethod
-    def build_winsorize(limits: Tuple[float, float]) -> function:
+    def build_winsorize(limits: Tuple[float, float]) -> Callable:
         def winsorize(data: CCDData) -> CCDData:
             """
             Replace all values of given dataset
@@ -62,7 +62,7 @@ class OutlierFilters:
         return winsorize
 
     @staticmethod
-    def build_percentile_clip(limits: Tuple[float, float]) -> function:
+    def build_percentile_clip(limits: Tuple[float, float]) -> Callable:
         def percentile_clip(data: CCDData) -> CCDData:
             """
             Mask all values of given dataset

@@ -1,3 +1,5 @@
+from typing import Callable
+
 from astropy.nddata import CCDData
 from astropy import stats
 import numpy as np
@@ -11,21 +13,21 @@ class Coaddition:
     """
 
     @staticmethod
-    def build_median() -> function:
+    def build_median() -> Callable:
         def median(data: np.ndarray) -> np.ndarray:
             # Use masked median to avoid outliers
             return np.ma.median(data, axis=0)
         return median
 
     @staticmethod
-    def build_mean() -> function:
+    def build_mean() -> Callable:
         def mean(data: np.ndarray) -> np.ndarray:
             # Use masked mean to avoid outliers
             return np.ma.mean(data, axis=0)
         return mean
 
     @staticmethod
-    def build_ivw_mean(bias_data: CCDData) -> function:
+    def build_ivw_mean(bias_data: CCDData) -> Callable:
         def iv_weighted_mean(light_data: CCDData) -> CCDData:
             """
             Calculates the inverse-variance weighted mean
@@ -60,7 +62,7 @@ class Coaddition:
         return iv_weighted_mean
 
     @staticmethod
-    def build_biweight_mean(c: float) -> function:
+    def build_biweight_mean(c: float) -> Callable:
         def biweight_mean(data: CCDData) -> CCDData:
             """
             Calculate the biweight mean 

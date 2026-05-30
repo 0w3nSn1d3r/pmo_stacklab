@@ -1,3 +1,3 @@
-from calibrate import Calibrate
+from .calibrate import Calibrate
 
 __all__ = ['Calibrate']

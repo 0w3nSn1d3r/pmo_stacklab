@@ -1,3 +1,5 @@
+from typing import Callable
+
 from astropy.nddata import CCDData
 
 
@@ -8,7 +10,7 @@ class Reproject:
     registration functions
     """
 
-    def __init__(self, register: function, align: function):
+    def __init__(self, register: Callable, align: Callable):
         # Assign registration and alignment functions as specified;
         # allow for stack pipeline customizability
 

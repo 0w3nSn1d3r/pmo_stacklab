@@ -1,10 +1,10 @@
 from astropy.nddata import CCDData
 from pathlib import Path
-from modules.calibration import Calibrate
-from modules.reprojection import Reproject
-from modules.stacking import Stack
-from modules.post_processing import PostProcess
-from _utils import folder2ccd
+from ..calibration import Calibrate
+from ..reprojection import Reproject
+from ..stacking import Stack
+from ..post_processing import PostProcess
+from ._utils import folder2ccd
 
 
 def calc_img(

@@ -1,8 +1,10 @@
+from typing import Callable
+
 from astropy.nddata import CCDData
 from skimage.registration import phase_cross_correlation
 from skimage.transform import SimilarityTransform
 import astroalign
-from _utils import select_reference
+from ._utils import select_reference
 
 
 class Register:
@@ -13,7 +15,7 @@ class Register:
     """
 
     @staticmethod
-    def build_triangulate() -> function:
+    def build_triangulate() -> Callable:
         def triangulate(data: CCDData) -> list:
             """
             Estimates transformation from each
@@ -51,7 +53,7 @@ class Register:
         return triangulate
 
     @staticmethod
-    def build_fourier_match() -> function:
+    def build_fourier_match() -> Callable:
         def fourier_match(data: CCDData) -> list:
             """
             Estimate the transformation matrix
@@ -111,7 +113,7 @@ class Register:
             return fourier_match
 
     @staticmethod
-    def build_plate_solve() -> function:
+    def build_plate_solve() -> Callable:
         def plate_solve(data: CCDData) -> CCDData:
             pass
         return plate_solve
