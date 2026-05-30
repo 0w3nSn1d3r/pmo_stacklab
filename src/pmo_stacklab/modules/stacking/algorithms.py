@@ -1,10 +1,11 @@
-"""Algorithm registry for the Stack process.
+"""Algorithm registry and process definition for the Stack process.
 
 Declares, as data, the algorithms the user may choose for Stack's two
 subprocesses -- outlier rejection and coaddition -- by wrapping the cube-reducing
 builders in this package as :class:`Algorithm` / :class:`Subprocess` objects with
-typed parameter schemas. These declarations are what the generalized endpoint
-builds operators from, and what the frontend renders (via ``to_dict``).
+typed parameter schemas, and assembles them into the :data:`STACK`
+:class:`ProcessSpec`. These declarations are what the generalized endpoint builds
+operators from, and what the frontend renders (via ``to_dict``).
 
 Each algorithm's ``builder`` returns a Stack ``CubeOperator`` (a function of one
 frame cube); the generalized builder neither knows nor cares about that shape.
@@ -14,10 +15,10 @@ per-algorithm "argument parser" the architecture calls for.
 """
 from __future__ import annotations
 
-from ..core import Algorithm, FloatParam, Subprocess
+from ..core import Algorithm, FloatParam, ProcessSpec, Subprocess
 from .coaddition import Coaddition
 from .outlier_filters import OutlierFilters
-from .stack import no_rejection
+from .stack import no_rejection, stack_coordinator
 
 # NOTE: OutlierFilters.build_percentile_clip and Coaddition.build_ivw_mean are not
 # registered yet -- percentile_clip has an unfixed bug (np.stats.percentile), and
@@ -125,4 +126,12 @@ COADDITION = Subprocess(
             ),
         ),
     ),
+)
+
+#: The Stack process: outlier rejection then coaddition, collapsed per filter by
+#: the Stack coordinator (see :func:`stack_coordinator`).
+STACK = ProcessSpec(
+    name="Stack",
+    subprocesses=(OUTLIER_REJECTION, COADDITION),
+    coordinator=stack_coordinator,
 )

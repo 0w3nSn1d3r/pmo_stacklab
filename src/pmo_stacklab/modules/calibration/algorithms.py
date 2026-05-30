@@ -1,9 +1,10 @@
-"""Algorithm registry for the Calibrate process.
+"""Algorithm registry and process definition for the Calibrate process.
 
 Declares, as data, the algorithm the user may configure for each of Calibrate's
 three subprocesses -- bias subtraction, dark subtraction, and flat fielding --
 by wrapping the calibration operators in this package as :class:`Algorithm` /
-:class:`Subprocess` objects with typed parameter schemas.
+:class:`Subprocess` objects with typed parameter schemas, and assembles them into
+the :data:`CALIBRATE` :class:`ProcessSpec`.
 
 Unlike Stack, each calibration step currently offers a single operation rather
 than competing algorithms; the user-facing variation is in its parameters (e.g.
@@ -17,9 +18,10 @@ future enhancement.
 """
 from __future__ import annotations
 
-from ..core import Algorithm, BoolParam, Subprocess
+from ..core import Algorithm, BoolParam, ProcessSpec, Subprocess
 from .calibrate import (
     bias_subtraction,
+    calibrate_coordinator,
     dark_subtraction,
     flat_fielding,
     median_master,
@@ -78,4 +80,12 @@ FLAT_FIELDING = Subprocess(
             builder=lambda: flat_fielding(median_master),
         ),
     ),
+)
+
+#: The Calibrate process: bias -> dark -> flat, applied to every light, after
+#: which the calibration frames are dropped (see :func:`calibrate_coordinator`).
+CALIBRATE = ProcessSpec(
+    name="Calibrate",
+    subprocesses=(BIAS_SUBTRACTION, DARK_SUBTRACTION, FLAT_FIELDING),
+    coordinator=calibrate_coordinator,
 )

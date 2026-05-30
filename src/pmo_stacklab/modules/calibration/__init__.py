@@ -1,4 +1,4 @@
-from .algorithms import BIAS_SUBTRACTION, DARK_SUBTRACTION, FLAT_FIELDING
+from .algorithms import BIAS_SUBTRACTION, CALIBRATE, DARK_SUBTRACTION, FLAT_FIELDING
 from .calibrate import (
     bias_subtraction,
     build_calibrate,
@@ -9,6 +9,7 @@ from .calibrate import (
 )
 
 __all__ = [
+    "CALIBRATE",
     "BIAS_SUBTRACTION",
     "DARK_SUBTRACTION",
     "FLAT_FIELDING",
