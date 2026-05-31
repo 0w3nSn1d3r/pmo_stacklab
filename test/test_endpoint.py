@@ -39,7 +39,10 @@ class EndpointTests(unittest.TestCase):
     def test_list_pipeline(self) -> None:
         resp = self.client.get("/api/schema")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.get_json()["order"], ["Calibrate", "Reproject", "Stack"])
+        self.assertEqual(
+            resp.get_json()["order"],
+            ["Calibrate", "Reproject", "Stack", "Post-Process"],
+        )
 
     def test_process_schema(self) -> None:
         resp = self.client.get("/api/schema/Calibrate")
