@@ -39,7 +39,7 @@ class EndpointTests(unittest.TestCase):
     def test_list_pipeline(self) -> None:
         resp = self.client.get("/api/schema")
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.get_json()["order"], ["Calibrate", "Stack"])
+        self.assertEqual(resp.get_json()["order"], ["Calibrate", "Reproject", "Stack"])
 
     def test_process_schema(self) -> None:
         resp = self.client.get("/api/schema/Calibrate")
@@ -75,10 +75,21 @@ class EndpointTests(unittest.TestCase):
         self.assertIsNotNone(out)
         self.assertEqual(float(out.lights["R"][0].data.mean()), 80.0)
 
-    def test_run_chains_calibrate_then_stack(self) -> None:
-        # No calibration frames -> Calibrate is a no-op; Stack then medians the lights.
+    def test_run_chains_full_pipeline(self) -> None:
+        # No calibration frames -> Calibrate is a no-op; identity Reproject leaves
+        # the uniform frames unchanged; Stack then medians the lights.
         self._seed_upload(ImageData.from_frames([_light(1.0), _light(3.0), _light(11.0)]))
         self.client.post("/api/run", json={"process": "Calibrate", "configs": {}})
+        self.client.post(
+            "/api/run",
+            json={
+                "process": "Reproject",
+                "configs": {
+                    "registration": {"algorithm": "none"},
+                    "alignment": {"algorithm": "nearest"},
+                },
+            },
+        )
         resp = self.client.post(
             "/api/run",
             json={

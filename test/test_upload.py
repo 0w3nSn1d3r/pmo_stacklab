@@ -124,7 +124,8 @@ class UploadEndpointTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 400)
 
     def test_upload_then_run_full_pipeline(self) -> None:
-        # Upload real frames, then drive Calibrate -> Stack through /api/run.
+        # Upload real frames, then drive the whole pipeline through /api/run:
+        # Calibrate -> Reproject -> Stack (the configured ORDER).
         data = {
             "lights": [
                 (_fits_bytes(100.0, filt="R", exptime=100), "l1.fits"),
@@ -140,6 +141,21 @@ class UploadEndpointTests(unittest.TestCase):
             self.client.post("/api/run", json={"process": "Calibrate", "configs": {}}).status_code,
             200,
         )
+        # Reproject with no registration (uniform frames) so pixel values are
+        # preserved exactly for the arithmetic check below.
+        self.assertEqual(
+            self.client.post(
+                "/api/run",
+                json={
+                    "process": "Reproject",
+                    "configs": {
+                        "registration": {"algorithm": "none"},
+                        "alignment": {"algorithm": "nearest"},
+                    },
+                },
+            ).status_code,
+            200,
+        )
         resp = self.client.post(
             "/api/run",
             json={
@@ -153,7 +169,7 @@ class UploadEndpointTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertTrue(resp.get_json()["stacked"])
         out = self.app.extensions["pmo_store"].get(self._sid(), "Stack")
-        # lights (100,104) - bias 10 = (90,94); mean = 92.
+        # lights (100,104) - bias 10 = (90,94); identity reproject; mean = 92.
         self.assertEqual(float(out.lights["R"][0].data.mean()), 92.0)
 
 
