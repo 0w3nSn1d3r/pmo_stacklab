@@ -20,18 +20,22 @@ def build_app(config=None):
         static_folder=os.path.join(pkg_root, "static"),
     )
 
-    # Default configuration. SECRET_KEY is required for Flask sessions, which
-    # the process blueprint uses to scope per-user pipeline state.
-    # NOTE: the in-memory session store is a placeholder; per the agreed
-    # architecture it will move to a disk-backed, session-keyed store.
+    # Default configuration. SECRET_KEY is required for Flask sessions, which key
+    # the per-session working data.
     app.config.update(
         SECRET_KEY=os.environ.get("PMO_STACKLAB_SECRET", "dev-only-change-me"),
     )
     if config:
         app.config.update(config)
 
-    # Blueprints are imported here (not at module load) to keep import light
-    # and to avoid import cycles.
+    # Per-app session store holding each session's working ImageData between
+    # pipeline steps. Behind the SessionStore interface so a disk-backed,
+    # multi-user store can replace it without touching the endpoint.
+    from .store import InMemoryStore
+
+    app.extensions["pmo_store"] = InMemoryStore()
+
+    # Blueprints are imported here (not at module load) to avoid import cycles.
     from .blueprints.pages import pages_bp
     from .blueprints.process import process_bp
 

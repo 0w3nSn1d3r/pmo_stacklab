@@ -1,26 +1,19 @@
+"""Small request-scoped helpers for the app blueprints."""
+from __future__ import annotations
+
 import os
-from datetime import datetime, timezone
+
 from flask import session
-from .config import SESSION_TTL
 
 
-def step(counts):
-    if 'session_id' not in session:
-        session['session_id'] = os.urandom(16).hex()
+def session_id() -> str:
+    """Return this browser session's stable id, creating one on first use.
 
-    sid = session['session_id']
-    now = datetime.now(timezone.utc)
-
-    # Evict stale sessions
-    stale = [k for k, v in counts.items() if now - v['last_seen']
-             > SESSION_TTL]
-    for k in stale:
-        del counts[k]
-
-    if sid not in counts:
-        counts[sid] = {'count': 0, 'last_seen': now}
-
-    counts[sid]['count'] += 1
-    counts[sid]['last_seen'] = now
-
-    return counts
+    Used to key the per-session working data in the
+    :class:`~pmo_stacklab.app.store.SessionStore`. This is the single-user
+    stand-in for authentication; a multi-user build would derive the key from the
+    authenticated user instead.
+    """
+    if "session_id" not in session:
+        session["session_id"] = os.urandom(16).hex()
+    return session["session_id"]
