@@ -112,3 +112,34 @@ export function runProcess(processName, configs) {
 export function uploadFrames(formData) {
   return requestJSON(`${API_ROOT}/upload`, { method: "POST", body: formData });
 }
+
+/**
+ * List the filters available to preview for a completed step.
+ * @param {string} step - "Upload" or a process name.
+ * @returns {Promise<{step: string, filters: string[]}>}
+ */
+export function getPreviewFilters(step) {
+  return requestJSON(`${API_ROOT}/preview/${encodeURIComponent(step)}`);
+}
+
+/**
+ * Build the URL for a step's preview PNG. Used directly as an <img> src (the
+ * browser fetches it), so this returns a URL string rather than a promise.
+ *
+ * @param {string} step - "Upload" or a process name.
+ * @param {string} filter - the filter to render.
+ * @param {{stretch?: string, intensity?: number, t?: number}} [params] - display
+ *   controls (stretch name, intensity 0-1) plus an optional cache-buster `t`.
+ * @returns {string}
+ */
+export function previewImageUrl(step, filter, params = {}) {
+  const query = new URLSearchParams();
+  if (params.stretch) query.set("stretch", params.stretch);
+  if (params.intensity != null) query.set("intensity", String(params.intensity));
+  if (params.t != null) query.set("t", String(params.t));
+  const qs = query.toString();
+  return (
+    `${API_ROOT}/preview/${encodeURIComponent(step)}/` +
+    `${encodeURIComponent(filter)}.png${qs ? `?${qs}` : ""}`
+  );
+}

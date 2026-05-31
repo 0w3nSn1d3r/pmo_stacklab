@@ -11,6 +11,7 @@
  */
 import { getProcessSchema, runProcess } from "./api.js";
 import { buildNav } from "./nav.js";
+import { showPreview } from "./preview-panel.js";
 import "./config-menu.js"; // registers <config-menu> / <algo-option>
 
 async function init() {
@@ -23,9 +24,16 @@ async function init() {
 
   const processName = mount.dataset.process || "";
   const resultEl = document.querySelector("#result");
+  const previewEl = /** @type {HTMLElement|null} */ (
+    document.querySelector("#preview")
+  );
   const runBtn = /** @type {HTMLButtonElement|null} */ (
     document.querySelector("#run")
   );
+
+  // Post-Process output is already display-ready (the user's own stretch made it),
+  // so its preview is shown as-is without the display-stretch controls.
+  const displayControls = processName !== "Post-Process";
 
   /** @type {import("./api.js").ProcessSchema} */
   let schema;
@@ -55,8 +63,9 @@ async function init() {
     runBtn.disabled = true;
     setResult(resultEl, "Running...");
     try {
-      const result = await runProcess(processName, configs);
-      setResult(resultEl, JSON.stringify(result, null, 2));
+      await runProcess(processName, configs);
+      setResult(resultEl, "");
+      if (previewEl) await showPreview(previewEl, processName, { displayControls });
     } catch (err) {
       setResult(resultEl, `Error: ${err.message}`);
     } finally {

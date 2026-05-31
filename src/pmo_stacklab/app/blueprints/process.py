@@ -7,6 +7,8 @@ Routes (mounted under ``/api``):
 * ``GET  /api/schema``            -- the pipeline as an ordered list of process names.
 * ``GET  /api/schema/<process>``  -- the full parameter schema for one process.
 * ``POST /api/run``               -- run a named process on the session's data.
+* ``GET  /api/preview/<step>``    -- the filters available to preview for a step.
+* ``GET  /api/preview/<step>/<filter>.png`` -- a display-stretched preview image.
 
 The run endpoint is generic because it acts only on the ProcessSpec abstraction:
 it looks the requested process up in the configured pipeline (``config.ORDER``),
@@ -17,12 +19,12 @@ alone.
 """
 from __future__ import annotations
 
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 from ..config import ORDER
 from ..store import SessionStore
 from ..utils import session_id
-from ...modules.core import ImageData, ProcessSpec, load_image_data
+from ...modules.core import ImageData, ProcessSpec, load_image_data, render_png
 
 process_bp = Blueprint("process", __name__)
 
@@ -142,7 +144,7 @@ def run():
 
 
 def _summarise(process_name: str, data: ImageData) -> dict[str, object]:
-    """A minimal JSON-safe summary of a process output (placeholder for the preview)."""
+    """A minimal JSON-safe summary of a process output."""
     return {
         "process": process_name,
         "stacked": data.is_stacked,
@@ -151,3 +153,66 @@ def _summarise(process_name: str, data: ImageData) -> dict[str, object]:
             for filt, frames in data.lights.items()
         },
     }
+
+
+# A "step" addressable for preview is any pipeline process plus the synthetic
+# "Upload" step, whose data lives under UPLOAD_KEY rather than a process name.
+UPLOAD_STEP = "Upload"
+
+
+def _step_data(step: str) -> ImageData | None:
+    """Return the stored ImageData for a preview ``step`` name, or ``None``.
+
+    ``step`` is a process name from ORDER, or :data:`UPLOAD_STEP` for the uploaded
+    frames. Unknown names yield ``None`` (so the caller can 404).
+    """
+    if step == UPLOAD_STEP:
+        key: str | None = UPLOAD_KEY
+    else:
+        _, spec = _find(step)
+        key = spec.name if spec is not None else None
+    if key is None:
+        return None
+    return _store().get(session_id(), key)
+
+
+@process_bp.get("/preview/<step>")
+def preview_filters(step: str):
+    """List the filters available to preview for a completed ``step``."""
+    data = _step_data(step)
+    if data is None:
+        return jsonify({"error": f"no preview available for {step!r}"}), 404
+    return jsonify({"step": step, "filters": list(data.filters)})
+
+
+@process_bp.get("/preview/<step>/<filter_name>.png")
+def preview_image(step: str, filter_name: str):
+    """Render a display-stretched PNG preview of one filter's frame at ``step``.
+
+    Query params (display-only; never touch the stored data):
+
+    * ``stretch`` -- display stretch name (default ``asinh``). Post-Process output
+      is already display-ready, so the frontend requests it with ``linear``.
+    * ``intensity`` -- faint-boost knob in [0, 1] (default 0.5).
+
+    If the step produced several frames for the filter (i.e. it has not been
+    stacked yet), the first frame is previewed.
+    """
+    data = _step_data(step)
+    if data is None or filter_name not in data.lights:
+        return jsonify({"error": f"no preview for {step!r} / {filter_name!r}"}), 404
+
+    stretch = request.args.get("stretch", "asinh")
+    try:
+        intensity = float(request.args.get("intensity", 0.5))
+    except ValueError:
+        return jsonify({"error": "intensity must be a number"}), 400
+
+    frame = data.lights[filter_name][0]
+    try:
+        png = render_png(frame, stretch=stretch, intensity=intensity)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    # no-store: previews are cheap to regenerate and vary with the display controls.
+    return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"})

@@ -9,6 +9,7 @@
 import { uploadFrames } from "./api.js";
 import { buildNav } from "./nav.js";
 import { createInfoTip } from "./info-tip.js";
+import { showPreview } from "./preview-panel.js";
 
 async function init() {
   buildNav();
@@ -23,6 +24,9 @@ async function init() {
     document.querySelector("#upload-form")
   );
   const resultEl = document.querySelector("#result");
+  const previewEl = /** @type {HTMLElement|null} */ (
+    document.querySelector("#preview")
+  );
   const uploadBtn = /** @type {HTMLButtonElement|null} */ (
     document.querySelector("#upload")
   );
@@ -34,8 +38,10 @@ async function init() {
     uploadBtn.disabled = true;
     setResult(resultEl, "Uploading...");
     try {
-      const result = await uploadFrames(formData);
-      setResult(resultEl, JSON.stringify(result, null, 2));
+      await uploadFrames(formData);
+      setResult(resultEl, "");
+      // Uploaded data is linear, so the preview offers display-stretch controls.
+      if (previewEl) await showPreview(previewEl, "Upload", { displayControls: true });
     } catch (err) {
       setResult(resultEl, `Error: ${err.message}`);
     } finally {

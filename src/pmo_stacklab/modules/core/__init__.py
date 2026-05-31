@@ -12,6 +12,7 @@ from .image_data import ImageData
 from .loader import DEFAULT_UNIT, load_frame, load_frames, load_image_data
 from .metadata_policy import MetadataPolicy
 from .parameters import BoolParam, ChoiceParam, FloatParam, IntParam, Parameter
+from .preview import DEFAULT_MAX_SIDE, downsample, render_png
 from .process import Operator, Process, sequential
 from .process_spec import ProcessSpec
 from .registry import Algorithm, Subprocess
@@ -23,6 +24,9 @@ __all__ = [
     "load_frame",
     "load_frames",
     "load_image_data",
+    "DEFAULT_MAX_SIDE",
+    "downsample",
+    "render_png",
     "Parameter",
     "FloatParam",
     "IntParam",

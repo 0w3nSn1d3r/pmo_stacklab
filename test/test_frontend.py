@@ -53,6 +53,7 @@ class StaticAssetTests(unittest.TestCase):
             "/static/js/api.js",
             "/static/js/info-tip.js",
             "/static/js/config-menu.js",
+            "/static/js/preview-panel.js",
             "/static/js/nav.js",
             "/static/js/process-page.js",
             "/static/js/upload-page.js",
