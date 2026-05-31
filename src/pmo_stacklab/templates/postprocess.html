@@ -2,216 +2,25 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StackLab | Post-Processing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body> 
+<body>
     <h1>Post-Processing</h1>
+    <nav id="navbar"></nav>
     <div class="content">
-        <div>
-            <h2>Background Modeling</h2>
-            <form>
-                <h3>Method</h3>
-                <fieldset class='method-opts'>
-                    <legend>Select Registration Method</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="reg-method" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="reg-method">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="reg-method">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
-
-            <form>
-                <h3>Parameters</h3>
-                <fieldset class='param-opts'>
-                    <legend>Select Registration Parameters</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="reg-params" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="reg-params">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="reg-params">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
+        <div class="config-column">
+            <!-- ConfigMenus are rendered here from /api/schema/Post-Process
+                 (not yet adopted into the pipeline; shows a notice until then). -->
+            <div class="config" id="config" data-process="Post-Process"></div>
+            <button id="run" class="run-button" type="button">Run Post-Process</button>
         </div>
-
-        <div>
-            <h2>Color Map</h2>
-            <form>
-                <h3>Method</h3>
-                <fieldset class='method-opts'>
-                    <legend>Select Alignment Method</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="align-method" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="align-method">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="align-method">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
-
-            <form>
-                <h3>Parameters</h3>
-                <fieldset class='method-opts'>
-                    <legend>Select Alignment Parameters</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="align-method" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="align-method">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="align-method">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
-        </div>
-
-        <div>
-            <h2>Stretch Function</h2>
-            <form>
-                <h3>Method</h3>
-                <fieldset class='method-opts'>
-                    <legend>Select Alignment Method</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="align-method" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="align-method">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="align-method">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
-
-            <form>
-                <h3>Parameters</h3>
-                <fieldset class='method-opts'>
-                    <legend>Select Alignment Parameters</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="align-method" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="align-method">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="align-method">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
-        </div>
-
-        <div>
-            <h2>Intensity Scaling</h2>
-            <form>
-                <h3>Method</h3>
-                <fieldset class='method-opts'>
-                    <legend>Select Alignment Method</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="align-method" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="align-method">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="align-method">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
-
-            <form>
-                <h3>Parameters</h3>
-                <fieldset class='method-opts'>
-                    <legend>Select Alignment Parameters</legend>
-                    <div>
-                        <input type="radio" value="plate-solve" name="align-method" checked required>
-                        <label for="plate-solve">Plate Solve</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="fourier-match" name="align-method">
-                        <label for="fourier-match">Fourier Match</label>
-                    </div>
-
-                    <div>
-                        <input type="radio" value="triangulate" name="align-method">
-                        <label for="triangulate">Triangulate</label>
-                    </div>
-                    <button type="submit">Submit</button>
-                </fieldset>
-            </form>
-        </div>
-
         <div class="preview">
-            <div class="preview">
-                <h2>PREVIEW</h2>
-                <div>
-                    <div>
-                        <h3>Before</h3>
-                    </div>
-                    <div>
-                        <h3>After</h3> 
-                    </div>
-                </div>
-            </div>
+            <h2>Result</h2>
+            <pre id="result" class="result"></pre>
         </div>
-    </div> 
-    
-    <nav class="main-nav"></nav>
-    <script src="../static/js/main.js"></script>
+    </div>
+    <script type="module" src="{{ url_for('static', filename='js/process-page.js') }}"></script>
 </body>
 </html>

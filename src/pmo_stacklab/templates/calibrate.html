@@ -2,29 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StackLab | Calibrate</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <h1>Calibrate</h1>
+    <nav id="navbar"></nav>
     <div class="content">
-        <button>
-            Calibrate Light Frames
-        </button>
-
+        <div class="config-column">
+            <!-- ConfigMenus are rendered here from /api/schema/Calibrate -->
+            <div class="config" id="config" data-process="Calibrate"></div>
+            <button id="run" class="run-button" type="button">Run Calibrate</button>
+        </div>
         <div class="preview">
-            <h2>PREVIEW</h2>
-            <div>
-                <div>
-                    <h3>Before</h3>
-                </div>
-                <div>
-                    <h3>After</h3>
-                </div>
-            </div>
+            <h2>Result</h2>
+            <pre id="result" class="result"></pre>
         </div>
     </div>
-    <nav id="navbar"></nav>
-    <script src="../static/js/main.js"></script>
+    <script type="module" src="{{ url_for('static', filename='js/process-page.js') }}"></script>
 </body>
 </html>

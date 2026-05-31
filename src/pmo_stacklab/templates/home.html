@@ -2,27 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PMO StackLab | Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <h1>Home</h1>
+    <h1>PMO StackLab</h1>
+    <nav id="navbar"></nav>
     <div class="content">
         <div>
-            <p id="intro">INTRO TO PMO STACKLAB</p>
+            <p id="intro">
+                PMO StackLab is an interactive, pedagogical tool for stacking
+                astrophotography images. Every step and parameter of the pipeline
+                is exposed so you can experiment, preview the effect of each
+                choice, and learn how it shapes the final image.
+            </p>
         </div>
-
         <div>
+            <h2>Pipeline overview</h2>
             <ol id="overview">
-                <li>Upload:</li>
-                <li>Calibrate:</li>
-                <li>Reproject:</li>
-                <li>Stack:</li>
-                <li>Post-Process:</li>
+                <li>Upload &mdash; provide your light, dark, bias, and flat frames.</li>
+                <li>Calibrate &mdash; remove the instrument signature.</li>
+                <li>Reproject &mdash; align the frames to a common grid.</li>
+                <li>Stack &mdash; integrate the frames into one image.</li>
+                <li>Post-Process &mdash; stretch and finish the result.</li>
             </ol>
         </div>
     </div>
-    <nav class="page-nav"></nav>
-    <script src="../static/js/main.js"></script>
+    <!-- nav.js drives the navbar from the live pipeline; type="module" so its
+         imports resolve. -->
+    <script type="module" src="{{ url_for('static', filename='js/home.js') }}"></script>
 </body>
 </html>

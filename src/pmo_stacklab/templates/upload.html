@@ -1,88 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <title>PMO StackLab | Upload</title>
-    </head>
-
-    <body>
-        <h1>Upload</h1>
-        <div class="content">
-            <div>
-                <h2>Select Frame Folders
-                    <span>
-                        <details class="info">
-                            <summary>&#xF433;</summary>
-                            Select a FOLDER containing all frames
-                            in .FITS file format. Light and flat frames
-                            should contain subfolders for all filters, even
-                            if only one (or none) was used. For example,
-                            uploaded folders should be of the following form:
-                            folder/&lt;filter folders&gt;/&lt;frame files (.FITS)&gt;
-                        </details></span></h2>
-                <ol>
-                    <li>
-                        <button>
-                            Select Lights
-                            <span>
-                                <details>
-                                    <summary>&#xF433;</summary>
-                                    *INSERT LIGHT FRAMES EXPLANATION
-                                    AND PLACE IN PROCESS*
-                                </details>
-                            </span>
-                        </button>
-                    </li>
-
-                    <li>
-                        <button>
-                            Select Darks
-                            <span>
-                                <details>
-                                    <summary>&#xF433;</summary>
-                                    *INSERT DARK FRAMES EXPLANATION
-                                    AND PLACE IN PROCESS*
-                                </details>
-                            </span>
-                        </button>
-                    </li>
-                    <li>
-                        <button>
-                            Select Biases
-                            <span>
-                                <details>
-                                    <summary>&#xF433;</summary>
-                                    *INSERT BIAS FRAMES EXPLANATION
-                                    AND PLACE IN PROCESS*
-                                </details>
-                            </span>
-                        </button>
-                    </li>
-
-                    <li>
-                        <button>
-                            Select Flats
-                            <span>
-                                <details>
-                                    <summary>&#xF433;</summary>
-                                    *INSERT FLAT FRAMES EXPLANATION
-                                    AND PLACE IN PROCESS*
-                                </details>
-                            </span>
-                        </button>
-                    </li>
-                </ol>
-            </div>
-
-            <div>
-                <h2>Preview</h2>
-                <div id="lights-preview"></div>
-                <div id="darks-preview"></div>
-                <div id="biases-preview"></div>
-                <div id="flats-preview"></div>
-            </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PMO StackLab | Upload</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Upload</h1>
+    <nav id="navbar"></nav>
+    <div class="content">
+        <div class="config-column">
+            <!-- One file input per frame role; the field names match the
+                 /api/upload multipart fields. Each carries an info tip. -->
+            <form id="upload-form" class="config-menu">
+                <div class="param">
+                    <span class="param-label">Lights<span data-info></span></span>
+                    <input type="file" name="lights" accept=".fits,.fit,.fts" multiple required>
+                </div>
+                <div class="param">
+                    <span class="param-label">Darks<span data-info></span></span>
+                    <input type="file" name="darks" accept=".fits,.fit,.fts" multiple>
+                </div>
+                <div class="param">
+                    <span class="param-label">Bias<span data-info></span></span>
+                    <input type="file" name="bias" accept=".fits,.fit,.fts" multiple>
+                </div>
+                <div class="param">
+                    <span class="param-label">Flats<span data-info></span></span>
+                    <input type="file" name="flats" accept=".fits,.fit,.fts" multiple>
+                </div>
+            </form>
+            <button id="upload" class="run-button" type="button">Upload Frames</button>
         </div>
-        <nav id="navbar"></nav>
-        <script src="../static/js/main.js"></script>
-    </body>
+        <div class="preview">
+            <h2>Result</h2>
+            <pre id="result" class="result"></pre>
+        </div>
+    </div>
+    <script type="module" src="{{ url_for('static', filename='js/upload-page.js') }}"></script>
+</body>
 </html>
