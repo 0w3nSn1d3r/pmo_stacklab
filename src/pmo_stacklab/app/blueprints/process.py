@@ -2,6 +2,8 @@
 
 Routes (mounted under ``/api``):
 
+* ``POST /api/upload``            -- load uploaded FITS frames into the session's
+                                     initial ImageData (the Upload process).
 * ``GET  /api/schema``            -- the pipeline as an ordered list of process names.
 * ``GET  /api/schema/<process>``  -- the full parameter schema for one process.
 * ``POST /api/run``               -- run a named process on the session's data.
@@ -20,13 +22,17 @@ from flask import Blueprint, current_app, jsonify, request
 from ..config import ORDER
 from ..store import SessionStore
 from ..utils import session_id
-from ...modules.core import ImageData, ProcessSpec
+from ...modules.core import ImageData, ProcessSpec, load_image_data
 
 process_bp = Blueprint("process", __name__)
 
-#: Store key for the uploaded (initial) ImageData, before any process has run. The
-#: Upload process (a later unit) will populate it; until then it is seeded directly.
+#: Store key for the uploaded (initial) ImageData, before any process has run.
+#: Populated by ``POST /api/upload`` and read as the input to the first process.
 UPLOAD_KEY = "__upload__"
+
+#: Multipart field names accepted by the upload endpoint, mapping each to its
+#: role in :func:`load_image_data`.
+FRAME_FIELDS = ("lights", "darks", "bias", "flats")
 
 
 def _store() -> SessionStore:
@@ -39,6 +45,45 @@ def _find(process_name: str | None) -> tuple[int | None, ProcessSpec | None]:
         if spec.name == process_name:
             return index, spec
     return None, None
+
+
+@process_bp.post("/upload")
+def upload():
+    """Load uploaded FITS frames into the session's initial ImageData.
+
+    Accepts a multipart form whose file fields are named by frame role
+    (``lights``, ``darks``, ``bias``, ``flats``); each field may carry multiple
+    files. At least one light frame is required. The resulting ImageData is stored
+    under :data:`UPLOAD_KEY` as the input to the first pipeline process.
+    """
+    streams = {
+        field: [f.stream for f in request.files.getlist(field)]
+        for field in FRAME_FIELDS
+    }
+    if not streams["lights"]:
+        return jsonify({"error": "at least one light frame is required"}), 400
+
+    try:
+        data = load_image_data(
+            lights=streams["lights"],
+            darks=streams["darks"],
+            bias=streams["bias"],
+            flats=streams["flats"],
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    store = _store()
+    store.put(session_id(), UPLOAD_KEY, data)
+
+    # Confirm every uploaded set so the user can verify what was received.
+    summary = _summarise("Upload", data)
+    summary["calibration"] = {
+        "darks": len(data.darks),
+        "bias": len(data.bias),
+        "flats": {filt: len(frames) for filt, frames in data.flats.items()},
+    }
+    return jsonify(summary)
 
 
 @process_bp.get("/schema")

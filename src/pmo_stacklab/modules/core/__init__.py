@@ -9,6 +9,7 @@ schema). Kept deliberately light to import (only astropy), so depending on core
 does not drag in the heavy per-process science modules.
 """
 from .image_data import ImageData
+from .loader import DEFAULT_UNIT, load_frame, load_frames, load_image_data
 from .metadata_policy import MetadataPolicy
 from .parameters import BoolParam, ChoiceParam, FloatParam, IntParam, Parameter
 from .process import Operator, Process, sequential
@@ -18,6 +19,10 @@ from .registry import Algorithm, Subprocess
 __all__ = [
     "ImageData",
     "MetadataPolicy",
+    "DEFAULT_UNIT",
+    "load_frame",
+    "load_frames",
+    "load_image_data",
     "Parameter",
     "FloatParam",
     "IntParam",
