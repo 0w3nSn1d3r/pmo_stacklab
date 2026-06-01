@@ -20,9 +20,6 @@ from .coaddition import Coaddition
 from .outlier_filters import OutlierFilters
 from .stack import no_rejection, stack_coordinator
 
-# NOTE: Coaddition.build_ivw_mean is not registered yet -- it needs the bias frames
-# as a call-time side input, which the cube-operator model does not yet supply.
-
 OUTLIER_REJECTION = Subprocess(
     name="outlier_rejection",
     label="Outlier Rejection",
@@ -150,6 +147,27 @@ COADDITION = Subprocess(
                     maximum=12.0,
                     step=0.5,
                     description="Tuning constant; smaller rejects harder (typical 4-8).",
+                ),
+            ),
+        ),
+        Algorithm(
+            name="ivw_mean",
+            label="Inverse-Variance Mean",
+            description=(
+                "Weighted mean that down-weights each pixel by its estimated noise "
+                "(brighter samples are noisier, so they count less). The variance "
+                "is estimated from the signal itself, so no calibration frames are "
+                "needed."
+            ),
+            builder=Coaddition.build_ivw_mean,
+            parameters=(
+                FloatParam(
+                    name="epsilon",
+                    default=1.0,
+                    minimum=0.001,
+                    maximum=1000.0,
+                    step=0.1,
+                    description="Variance floor; bounds the weight of faint/zero pixels.",
                 ),
             ),
         ),

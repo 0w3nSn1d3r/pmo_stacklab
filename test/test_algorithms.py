@@ -61,6 +61,22 @@ class StackRegistryTests(unittest.TestCase):
         # The biweight location of identical values is that value.
         self.assertAlmostEqual(float(out.lights["R"][0].data.mean()), 7.0)
 
+    def test_ivw_mean_downweights_brighter_sample(self) -> None:
+        # Two frames at 10 and 1000: the inverse-variance weighted mean leans toward
+        # the fainter (lower-variance) sample, so it sits well below the plain mean
+        # of 505.
+        img = ImageData.from_frames([_light("R", 10.0), _light("R", 1000.0)])
+        out = self._run_stack(img, "none", "ivw_mean", coadd_params={"epsilon": 1.0})
+        value = float(out.lights["R"][0].data.mean())
+        self.assertLess(value, 505.0)   # below the unweighted mean
+        self.assertGreater(value, 10.0)  # but above the faint sample alone
+
+    def test_ivw_mean_identical_frames(self) -> None:
+        # With equal values every weight is equal, so the result is that value.
+        img = ImageData.from_frames([_light("R", 42.0), _light("R", 42.0)])
+        out = self._run_stack(img, "none", "ivw_mean")
+        self.assertAlmostEqual(float(out.lights["R"][0].data.mean()), 42.0)
+
     def test_sigma_clip_rejects_outlier(self) -> None:
         frames = [_light("R", v) for v in (8.0, 10.0, 12.0, 9.0, 11.0, 1000.0)]
         img = ImageData.from_frames(frames)

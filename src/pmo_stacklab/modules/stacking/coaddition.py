@@ -27,38 +27,31 @@ class Coaddition:
         return mean
 
     @staticmethod
-    def build_ivw_mean(bias_data: CCDData) -> Callable:
-        def iv_weighted_mean(light_data: CCDData) -> CCDData:
+    def build_ivw_mean(epsilon: float = 1.0) -> Callable:
+        def iv_weighted_mean(data: np.ndarray) -> np.ndarray:
             """
-            Calculates the inverse-variance weighted mean
-            per pixel across the frame index
+            Inverse-variance weighted mean per pixel across the frame index.
 
-            :param light_data: array-like object containing light-frame iamge data; 
-            must have a dict-like 'header' attribute with gain specified by 'egain';
-            expected to be 3D, and already be calibrated
-            :type light_data: CCDData
+            Each pixel is weighted by ``1 / variance``. The variance is estimated
+            from the signal itself as a shot-noise proxy (Poisson: variance grows
+            with signal), so brighter -- noisier -- samples are down-weighted. This
+            needs no calibration side-inputs, fitting the cube-operator contract:
+            it takes the (n_frames, ny, nx) cube and returns the (ny, nx) plane.
 
-            :param bias_data: array-like object containing average bias-frame image data;
-            expected to be 2D
-            :type bias_data: CCDData
-
-            :return: 2D array of IVWM stacked pixel values
-            :rtype: CCDData[shape(<NAXIS1>, <NAXIS2>), dtype[<BITPIX>]]
+            :param data: the frame cube (axis 0 = frame index); may be masked.
+            :type data: np.ndarray
+            :param epsilon: variance floor added to every pixel, so faint/zero
+                pixels get a finite (large but bounded) weight instead of dividing
+                by zero.
+            :type epsilon: float
+            :return: 2D array of the weighted-mean stacked pixel values.
+            :rtype: np.ndarray
             """
-            # Access gain from FITS file header
-            gain = light_data.header['egain']
-
-            # Calc variance of light frames
-            light_var = light_data * gain
-
-            # Calc variance of bias frames
-            read_var = np.ma.var(bias_data, axis=0) * gain**2
-
-            # Calc total variance of image across frames
-            total_var = light_var + read_var
-
-            weights = 1 / total_var
-            return np.ma.average(light_data, axis=0, weights=weights)
+            # Shot-noise variance proxy: ~ signal, floored by epsilon and clamped
+            # non-negative (calibration can push some pixels slightly below zero).
+            variance = np.clip(np.ma.getdata(data), 0.0, None) + epsilon
+            weights = 1.0 / variance
+            return np.ma.average(data, axis=0, weights=weights)
         return iv_weighted_mean
 
     @staticmethod
