@@ -36,9 +36,15 @@ def load_frame(source: Any, *, unit: str = DEFAULT_UNIT) -> CCDData:
         an explicit ``BUNIT`` in the file takes precedence.
     :returns: the frame as a CCDData, with its WCS parsed and header preserved.
     :raises ValueError: if ``source`` is not a readable FITS frame.
+
+    ``format="fits"`` is passed explicitly: the app only accepts FITS, and
+    astropy's content-based auto-identification is unreliable on the nameless
+    multipart upload streams Werkzeug hands us (it raises "Format could not be
+    identified"). Being explicit makes uploads from the browser form work
+    regardless of how the stream presents itself.
     """
     try:
-        return CCDData.read(source, unit=unit)
+        return CCDData.read(source, unit=unit, format="fits")
     except Exception as exc:  # normalise astropy/OSError variety into one error type
         raise ValueError(f"could not read FITS frame: {exc}") from exc
 

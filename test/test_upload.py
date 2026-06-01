@@ -60,6 +60,17 @@ class LoaderTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             load_frame(io.BytesIO(b"not a fits file"))
 
+    def test_load_frame_reads_nameless_unsniffable_stream(self) -> None:
+        # Regression: multipart upload streams have no filename and astropy's
+        # content auto-identification can fail on them ("Format could not be
+        # identified"). load_frame must still read them (it passes format="fits").
+        # A raw, name-less reader wrapper reproduces that condition.
+        raw = io.BufferedReader(io.BytesIO(_fits_bytes(7.0, filt="R").getvalue()))
+        self.assertFalse(hasattr(raw, "name"))
+        frame = load_frame(raw)
+        self.assertEqual(frame.header["FILTER"], "R")
+        self.assertEqual(float(frame.data.mean()), 7.0)
+
     def test_load_image_data_groups_by_filter(self) -> None:
         img = load_image_data(
             lights=[_fits_bytes(1.0, filt="R"), _fits_bytes(2.0, filt="G")],
