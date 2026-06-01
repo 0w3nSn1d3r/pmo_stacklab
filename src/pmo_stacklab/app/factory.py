@@ -46,11 +46,14 @@ def build_app(config=None):
         app.config.update(config)
 
     # Per-app session store holding each session's working ImageData between
-    # pipeline steps. Behind the SessionStore interface so a disk-backed,
-    # multi-user store can replace it without touching the endpoint.
+    # pipeline steps. Idle sessions are evicted after SESSION_TTL so memory does
+    # not grow without bound over a long observing session. Behind the
+    # SessionStore interface so a disk-backed, multi-user store can replace it
+    # without touching the endpoint.
+    from .config import SESSION_TTL
     from .store import InMemoryStore
 
-    app.extensions["pmo_store"] = InMemoryStore()
+    app.extensions["pmo_store"] = InMemoryStore(ttl=SESSION_TTL)
 
     # Blueprints are imported here (not at module load) to avoid import cycles.
     from .blueprints.pages import pages_bp
