@@ -105,7 +105,7 @@ export async function showPreview(container, step, options = {}) {
     return img;
   });
 
-  // -- blink toggle (only when there is something to blink between)
+  // -- action bar: blink toggle (when there are two views) + zoom-out (when zoomed)
   const blinkBar = document.createElement("div");
   blinkBar.className = "blink-bar";
   let activeIndex = views.length - 1; // default to "after"
@@ -119,6 +119,17 @@ export async function showPreview(container, step, options = {}) {
     toggleBtn.textContent = "Blink ⇄"; // ⇄
     blinkBar.append(toggleBtn, activeLabel);
   }
+
+  // Click an image to zoom into a fixed tile centred there; this state is shared
+  // across views so zoom and blink compose (compare the SAME zoomed region).
+  /** @type {{cx: number, cy: number}|null} */
+  let zoom = null;
+  const zoomOutBtn = document.createElement("button");
+  zoomOutBtn.type = "button";
+  zoomOutBtn.className = "run-button zoom-out";
+  zoomOutBtn.textContent = "Zoom out";
+  zoomOutBtn.hidden = true;
+  blinkBar.append(zoomOutBtn);
 
   const metricsTable = document.createElement("table");
   metricsTable.className = "metrics-table";
@@ -143,17 +154,42 @@ export async function showPreview(container, step, options = {}) {
     intensity: intensityInput ? Number(intensityInput.value) : 0.5,
   });
 
-  // Re-request every view's image with the shared (matched) display params, so the
-  // blink only ever differs by the processing -- never by the display transform.
+  // Re-request every view's image with the shared (matched) display params and the
+  // shared zoom, so the blink only ever differs by the processing -- never by the
+  // display transform or the region viewed.
   const refreshImages = () => {
     const params = displayParams();
+    if (zoom) {
+      params.cx = zoom.cx;
+      params.cy = zoom.cy;
+    }
     views.forEach((view, i) => {
       images[i].src = previewImageUrl(view.step, filterSelect.value, {
         ...params,
         t: Date.now(), // cache-buster
       });
     });
+    zoomOutBtn.hidden = !zoom;
+    stack.classList.toggle("zoomable", !zoom);
   };
+
+  // Clicking an image zooms into a tile centred on the click (in fractional image
+  // coordinates, so the backend maps it onto the full-resolution frame).
+  const onImageClick = (event) => {
+    if (zoom) return; // already zoomed; use "Zoom out" to reset
+    const img = /** @type {HTMLImageElement} */ (event.currentTarget);
+    const rect = img.getBoundingClientRect();
+    zoom = {
+      cx: (event.clientX - rect.left) / rect.width,
+      cy: (event.clientY - rect.top) / rect.height,
+    };
+    refreshImages();
+  };
+  images.forEach((img) => img.addEventListener("click", onImageClick));
+  zoomOutBtn.addEventListener("click", () => {
+    zoom = null;
+    refreshImages();
+  });
 
   // Show only the active view's image and its metrics; keep the on-screen image in
   // a fixed position so toggling reads as a blink, not a layout change.

@@ -201,6 +201,9 @@ def preview_image(step: str, filter_name: str):
     * ``stretch`` -- display stretch name (default ``asinh``). Post-Process output
       is already display-ready, so the frontend requests it with ``linear``.
     * ``intensity`` -- faint-boost knob in [0, 1] (default 0.5).
+    * ``cx``, ``cy`` -- optional fractional click centre in [0, 1] to zoom into. A
+      fixed tile (a quarter of each dimension) centred there is rendered from the
+      full-resolution frame, sharing the full-frame brightness mapping.
 
     If the step produced several frames for the filter (i.e. it has not been
     stacked yet), the first frame is previewed.
@@ -212,17 +215,49 @@ def preview_image(step: str, filter_name: str):
     stretch = request.args.get("stretch", "asinh")
     try:
         intensity = float(request.args.get("intensity", 0.5))
-    except ValueError:
-        return jsonify({"error": "intensity must be a number"}), 400
+        region = _zoom_region(request.args.get("cx"), request.args.get("cy"))
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
 
     frame = data.lights[filter_name][0]
     try:
-        png = render_png(frame, stretch=stretch, intensity=intensity)
+        png = render_png(frame, stretch=stretch, intensity=intensity, region=region)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
     # no-store: previews are cheap to regenerate and vary with the display controls.
     return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"})
+
+
+#: Zoom tile size as a fraction of each dimension (a quarter-by-quarter region).
+_ZOOM_FRACTION = 0.25
+
+
+def _zoom_region(
+    cx: str | None, cy: str | None
+) -> tuple[float, float, float, float] | None:
+    """Turn an optional fractional click centre into a fixed zoom region.
+
+    :param cx, cy: the click centre as fractions in [0, 1], or ``None`` for no zoom.
+    :returns: a fractional ``(x0, y0, x1, y1)`` region, or ``None`` when no centre
+        is given. The tile is :data:`_ZOOM_FRACTION` of each dimension, centred on
+        the click and shifted to stay within the image.
+    :raises ValueError: if only one of ``cx``/``cy`` is given, or they are not
+        numbers in [0, 1].
+    """
+    if cx is None and cy is None:
+        return None
+    if cx is None or cy is None:
+        raise ValueError("both cx and cy are required to zoom")
+    fx, fy = float(cx), float(cy)
+    if not (0.0 <= fx <= 1.0 and 0.0 <= fy <= 1.0):
+        raise ValueError("cx and cy must be in [0, 1]")
+
+    half = _ZOOM_FRACTION / 2.0
+    # Centre the tile on the click, then clamp so it stays fully inside [0, 1].
+    x0 = min(max(fx - half, 0.0), 1.0 - _ZOOM_FRACTION)
+    y0 = min(max(fy - half, 0.0), 1.0 - _ZOOM_FRACTION)
+    return (x0, y0, x0 + _ZOOM_FRACTION, y0 + _ZOOM_FRACTION)
 
 
 @process_bp.get("/metrics/<step>")

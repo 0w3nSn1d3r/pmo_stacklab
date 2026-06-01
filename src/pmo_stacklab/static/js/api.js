@@ -138,14 +138,20 @@ export function getMetrics(step) {
  *
  * @param {string} step - "Upload" or a process name.
  * @param {string} filter - the filter to render.
- * @param {{stretch?: string, intensity?: number, t?: number}} [params] - display
- *   controls (stretch name, intensity 0-1) plus an optional cache-buster `t`.
+ * @param {{stretch?: string, intensity?: number, cx?: number, cy?: number,
+ *   t?: number}} [params] - display controls (stretch name, intensity 0-1), an
+ *   optional fractional zoom centre (cx, cy in [0,1]), plus an optional
+ *   cache-buster `t`.
  * @returns {string}
  */
 export function previewImageUrl(step, filter, params = {}) {
   const query = new URLSearchParams();
   if (params.stretch) query.set("stretch", params.stretch);
   if (params.intensity != null) query.set("intensity", String(params.intensity));
+  if (params.cx != null && params.cy != null) {
+    query.set("cx", String(params.cx));
+    query.set("cy", String(params.cy));
+  }
   if (params.t != null) query.set("t", String(params.t));
   const qs = query.toString();
   return (

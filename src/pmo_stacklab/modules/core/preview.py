@@ -26,6 +26,7 @@ from astropy.visualization import (
     AsinhStretch,
     LinearStretch,
     LogStretch,
+    ManualInterval,
     PercentileInterval,
     SqrtStretch,
 )
@@ -79,14 +80,40 @@ def downsample(data: np.ndarray, max_side: int = DEFAULT_MAX_SIDE) -> np.ndarray
     return block.mean(axis=(1, 3))
 
 
+def _crop_region(
+    data: np.ndarray, region: tuple[float, float, float, float]
+) -> np.ndarray:
+    """Crop ``data`` to a fractional ``region`` = (x0, y0, x1, y1), each in [0, 1].
+
+    Fractions (rather than pixels) let the caller select a region from the preview
+    without knowing the full-resolution shape or downsample factor. The region is
+    clamped to the image and guaranteed at least one pixel in each axis.
+    """
+    height, width = data.shape
+    x0f, y0f, x1f, y1f = region
+    x0, x1 = sorted((x0f, x1f))
+    y0, y1 = sorted((y0f, y1f))
+    col0 = int(np.clip(np.floor(x0 * width), 0, width - 1))
+    row0 = int(np.clip(np.floor(y0 * height), 0, height - 1))
+    col1 = int(np.clip(np.ceil(x1 * width), col0 + 1, width))
+    row1 = int(np.clip(np.ceil(y1 * height), row0 + 1, height))
+    return data[row0:row1, col0:col1]
+
+
 def render_png(
     frame: CCDData,
     *,
     stretch: str = "asinh",
     intensity: float = 0.5,
     max_side: int = DEFAULT_MAX_SIDE,
+    region: tuple[float, float, float, float] | None = None,
 ) -> bytes:
-    """Render one frame to a display-stretched grayscale PNG.
+    """Render one frame (or a region of it) to a display-stretched grayscale PNG.
+
+    The black/white points (the percentile interval) are computed on the WHOLE
+    frame and reused for any region, so a zoomed-in tile keeps the overview's
+    brightness mapping -- a crop never looks artificially brighter or darker than
+    the full view. This is the same matched-display honesty rule the blink uses.
 
     :param frame: the stored frame to visualize (never modified).
     :param stretch: display-stretch name -- ``"asinh"``, ``"log"``, ``"sqrt"``, or
@@ -94,12 +121,23 @@ def render_png(
         output) to show it exactly as produced.
     :param intensity: faint-signal-boost knob in [0, 1] (ignored by linear/sqrt).
     :param max_side: longest-side cap for the downsample.
+    :param region: optional fractional crop ``(x0, y0, x1, y1)`` in [0, 1]; when
+        given, the returned image is that region of the full-resolution frame
+        (still downsampled only if it exceeds ``max_side``), so it shows more
+        detail than the same area in the full-frame overview.
     :returns: PNG-encoded bytes (8-bit grayscale).
     """
-    small = downsample(np.asarray(frame.data, dtype=float), max_side)
+    full = np.asarray(frame.data, dtype=float)
 
-    # Normalize+clip to [0, 1] on the display copy, then apply the display stretch.
-    normalized = PercentileInterval(_DISPLAY_PERCENTILE)(small)
+    # Fix the black/white points on the full frame so overview and crops match.
+    interval = PercentileInterval(_DISPLAY_PERCENTILE)
+    vmin, vmax = interval.get_limits(full)
+
+    selected = _crop_region(full, region) if region is not None else full
+    small = downsample(selected, max_side)
+
+    # Apply the shared limits, then the display stretch.
+    normalized = ManualInterval(vmin, vmax)(small)
     shown = _make_stretch(stretch, intensity)(normalized)
 
     # Off-grid/masked pixels (e.g. from reprojection) survive as NaN; zero them so

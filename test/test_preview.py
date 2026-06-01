@@ -57,6 +57,32 @@ class RenderTests(unittest.TestCase):
         high = render_png(_frame(data), stretch="asinh", intensity=0.9)
         self.assertNotEqual(low, high)
 
+    def test_region_crops_full_res(self) -> None:
+        # A small region of a large frame should render at (near) the region's
+        # full-resolution pixel size -- i.e. far larger than that region looks in
+        # the downsampled full-frame overview.
+        data = np.linspace(0, 1000, 2000 * 2000).reshape(2000, 2000)
+        # Centre quarter region: x,y in [0.375, 0.625] -> 500x500 full-res pixels.
+        png = render_png(_frame(data), region=(0.375, 0.375, 0.625, 0.625))
+        w, h = _png_size(png)
+        self.assertEqual((w, h), (500, 500))  # full-res, under the 1024 cap
+
+    def test_region_shares_full_frame_levels(self) -> None:
+        # The black/white points are fixed on the whole frame, so a crop of a dim
+        # corner stays dim (it must NOT be re-normalized to its own local range).
+        data = np.zeros((100, 100))
+        data[90:, 90:] = 10.0       # one bright corner sets the white point
+        # Crop the dark top-left corner; with shared levels it should be near-black.
+        png = render_png(_frame(data), stretch="linear", region=(0.0, 0.0, 0.2, 0.2))
+        from PIL import Image  # local import; Pillow is a dependency
+        arr = np.asarray(Image.open(io.BytesIO(png)))
+        self.assertLess(int(arr.max()), 30)  # dark, because levels are global
+
+    def test_large_region_downsampled_to_cap(self) -> None:
+        data = np.zeros((4000, 4000))
+        png = render_png(_frame(data), region=(0.0, 0.0, 1.0, 1.0), max_side=1024)
+        self.assertLessEqual(max(_png_size(png)), 1024)
+
 
 class PreviewRouteTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -95,6 +121,40 @@ class PreviewRouteTests(unittest.TestCase):
     def test_bad_stretch_400(self) -> None:
         resp = self.client.get("/api/preview/Upload/R.png?stretch=bogus")
         self.assertEqual(resp.status_code, 400)
+
+    def test_zoom_params_accepted(self) -> None:
+        resp = self.client.get("/api/preview/Upload/R.png?cx=0.5&cy=0.5")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.mimetype, "image/png")
+
+    def test_zoom_requires_both_coords(self) -> None:
+        resp = self.client.get("/api/preview/Upload/R.png?cx=0.5")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_zoom_coords_out_of_range_400(self) -> None:
+        resp = self.client.get("/api/preview/Upload/R.png?cx=1.5&cy=0.5")
+        self.assertEqual(resp.status_code, 400)
+
+
+class ZoomRegionTests(unittest.TestCase):
+    def test_centres_and_clamps(self) -> None:
+        from pmo_stacklab.app.blueprints.process import _zoom_region, _ZOOM_FRACTION
+
+        self.assertIsNone(_zoom_region(None, None))
+        # A central click yields a tile centred on it.
+        x0, y0, x1, y1 = _zoom_region("0.5", "0.5")
+        self.assertAlmostEqual(x1 - x0, _ZOOM_FRACTION)
+        self.assertAlmostEqual((x0 + x1) / 2, 0.5)
+        # A corner click clamps the tile fully inside [0, 1].
+        x0, y0, x1, y1 = _zoom_region("0.0", "0.0")
+        self.assertAlmostEqual(x0, 0.0)
+        self.assertAlmostEqual(x1, _ZOOM_FRACTION)
+
+    def test_partial_coords_raise(self) -> None:
+        from pmo_stacklab.app.blueprints.process import _zoom_region
+
+        with self.assertRaises(ValueError):
+            _zoom_region("0.5", None)
 
 
 if __name__ == "__main__":

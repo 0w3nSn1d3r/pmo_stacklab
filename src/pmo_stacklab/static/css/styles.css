@@ -317,9 +317,15 @@ input[type="number"] {
   min-height: 1.5rem;
 }
 
-.blink-toggle {
+.blink-toggle,
+.zoom-out {
   padding: 0.35rem 0.9rem;
   font-size: 0.9rem;
+}
+
+/* Cursor hints that the image can be clicked to zoom (only when not zoomed). */
+.blink-stack.zoomable > .preview-image.active {
+  cursor: zoom-in;
 }
 
 .blink-label {
