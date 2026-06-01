@@ -21,9 +21,15 @@ def build_app(config=None):
     )
 
     # Default configuration. SECRET_KEY is required for Flask sessions, which key
-    # the per-session working data.
+    # the per-session working data. QUICKSTACK_CONFIG_PATH is where the persisted
+    # Quick Stack recipe lives (the single-user app keeps one under the instance
+    # folder); a multi-user build would key it per user.
     app.config.update(
         SECRET_KEY=os.environ.get("PMO_STACKLAB_SECRET", "dev-only-change-me"),
+        QUICKSTACK_CONFIG_PATH=os.environ.get(
+            "PMO_STACKLAB_QUICKSTACK",
+            os.path.join(app.instance_path, "quickstack.json"),
+        ),
     )
     if config:
         app.config.update(config)

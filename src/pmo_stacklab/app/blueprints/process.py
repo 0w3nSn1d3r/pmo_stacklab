@@ -22,9 +22,10 @@ from __future__ import annotations
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
-from ..config import ORDER
+from ..config import ORDER, PIPELINE
 from ..store import SessionStore
 from ..utils import session_id
+from .. import quickstack
 from ...modules.core import (
     CHANNELS,
     COLOR_COMBINE,
@@ -154,6 +155,83 @@ def run():
 
     store.put(sid, spec.name, output)
     return jsonify(_summarise(spec.name, output))
+
+
+# -- Quick Stack: run the whole saved pipeline in one shot --------------------
+
+def _quickstack_path() -> str:
+    return current_app.config["QUICKSTACK_CONFIG_PATH"]
+
+
+@process_bp.get("/quickstack")
+def quickstack_config():
+    """Return the saved Quick Stack recipe plus the whole-pipeline schema.
+
+    The schema lets the settings UI render every process's options; the recipe is
+    the user's current saved choices to pre-fill them.
+    """
+    return jsonify(
+        {
+            "recipe": quickstack.load_recipe(_quickstack_path()),
+            "schema": PIPELINE.to_dict(),
+        }
+    )
+
+
+@process_bp.put("/quickstack")
+def save_quickstack_config():
+    """Validate and persist a Quick Stack recipe.
+
+    The recipe is validated by attempting to build the pipeline from it (so a bad
+    algorithm name or out-of-range parameter is rejected before it is saved).
+    """
+    recipe = request.get_json(silent=True) or {}
+    try:
+        PIPELINE.build(recipe)  # validation only; the built pipeline is discarded
+    except (KeyError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    quickstack.save_recipe(_quickstack_path(), recipe)
+    return jsonify({"saved": True, "recipe": recipe})
+
+
+@process_bp.post("/quickstack/reset")
+def reset_quickstack_config():
+    """Reset the Quick Stack recipe to the factory default and return it."""
+    return jsonify({"recipe": quickstack.reset_recipe(_quickstack_path())})
+
+
+@process_bp.post("/quickstack/run")
+def quickstack_run():
+    """Apply the saved Quick Stack recipe to the uploaded frames in one shot.
+
+    Builds the whole pipeline from the saved recipe and runs it on the session's
+    uploaded data. Each process's output is persisted under its own key (exactly as
+    the step-by-step ``/run`` does), so the preview, metrics, blink, and download
+    all work per step afterwards -- Quick Stack is a shortcut through the same
+    pipeline, not a separate path.
+    """
+    sid = session_id()
+    store = _store()
+    data = store.get(sid, UPLOAD_KEY)
+    if data is None:
+        return jsonify({"error": "no uploaded data; upload frames first"}), 409
+
+    recipe = quickstack.load_recipe(_quickstack_path())
+    try:
+        pipeline = PIPELINE.build(recipe)
+    except (KeyError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    # Run each process in turn, persisting every step's output so the per-step
+    # preview/metrics/blink/download work just as in the manual flow.
+    try:
+        for process in pipeline.processes:
+            data = process.run(data)
+            store.put(sid, process.name, data)
+    except Exception as exc:  # surface pipeline failures as a clean 500
+        return jsonify({"error": f"Quick Stack failed: {exc}"}), 500
+
+    return jsonify(_summarise(pipeline.processes[-1].name, data))
 
 
 def _summarise(process_name: str, data: ImageData) -> dict[str, object]:

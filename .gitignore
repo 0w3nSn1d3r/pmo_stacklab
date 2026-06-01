@@ -11,6 +11,9 @@ dist/
 venv/
 env/
 
+# Flask instance folder (runtime state, e.g. the saved Quick Stack recipe)
+instance/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db
