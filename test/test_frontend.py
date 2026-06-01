@@ -43,6 +43,10 @@ class ProcessPageWiringTests(unittest.TestCase):
         for field in ("lights", "darks", "bias", "flats"):
             self.assertIn(f'name="{field}"', upload)
 
+        color = self.client.get("/color").get_data(as_text=True)
+        self.assertIn("js/color-page.js", color)
+        self.assertIn('id="navbar"', color)
+
 
 class StaticAssetTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -57,6 +61,7 @@ class StaticAssetTests(unittest.TestCase):
             "/static/js/nav.js",
             "/static/js/process-page.js",
             "/static/js/upload-page.js",
+            "/static/js/color-page.js",
             "/static/js/home.js",
             "/static/css/styles.css",
         ):

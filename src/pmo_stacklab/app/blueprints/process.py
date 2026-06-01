@@ -26,12 +26,18 @@ from ..config import ORDER
 from ..store import SessionStore
 from ..utils import session_id
 from ...modules.core import (
+    CHANNELS,
+    COLOR_COMBINE,
     ImageData,
     ProcessSpec,
+    RGBImage,
+    combine_image_data,
     frame_metrics,
     load_image_data,
     render_png,
 )
+from PIL import Image
+import io
 
 process_bp = Blueprint("process", __name__)
 
@@ -279,4 +285,108 @@ def metrics(step: str):
                 for filt, frames in data.lights.items()
             },
         }
+    )
+
+
+# -- colour combination (a terminal step, parallel to the pipeline) -----------
+
+#: Store key for the combined RGB image.
+COLOR_KEY = "__color__"
+
+#: Default filter-name -> channel guesses, so common setups pre-fill the mapping.
+_CHANNEL_GUESS = {
+    "red": ("R", "RED", "HA", "HALPHA", "SII", "S2"),
+    "green": ("G", "GREEN", "V", "OIII", "O3"),
+    "blue": ("B", "BLUE", "OIII", "O3", "HB"),
+}
+
+
+def _latest_stacked() -> tuple[str | None, ImageData | None]:
+    """Find the most-processed stored step whose data is stacked (one frame/filter).
+
+    Colour combination needs single, stacked frames; the natural source is the
+    furthest-along step the session has produced. Walk the pipeline backward, then
+    fall back to the uploaded data.
+    """
+    sid = session_id()
+    store = _store()
+    for spec in reversed(ORDER):
+        candidate = store.get(sid, spec.name)
+        if isinstance(candidate, ImageData) and candidate.is_stacked:
+            return spec.name, candidate
+    uploaded = store.get(sid, UPLOAD_KEY)
+    if isinstance(uploaded, ImageData) and uploaded.is_stacked:
+        return UPLOAD_STEP, uploaded
+    return None, None
+
+
+def _default_mapping(filters: list[str]) -> dict[str, str | None]:
+    """Guess a channel->filter mapping from filter names; unguessed channels None."""
+    upper = {f.upper(): f for f in filters}
+    mapping: dict[str, str | None] = {}
+    for channel in CHANNELS:
+        mapping[channel] = next(
+            (upper[name] for name in _CHANNEL_GUESS[channel] if name in upper), None
+        )
+    return mapping
+
+
+@process_bp.get("/color")
+def color_schema():
+    """Return the combine-algorithm schema plus the source step's available filters.
+
+    The frontend uses this to render the algorithm choice, the channel->filter
+    dropdowns, and a sensible default mapping. 409 if nothing stacked exists yet.
+    """
+    step, data = _latest_stacked()
+    if data is None:
+        return jsonify({"error": "no stacked image to colour-combine yet"}), 409
+    filters = list(data.filters)
+    return jsonify(
+        {
+            "source": step,
+            "filters": filters,
+            "channels": list(CHANNELS),
+            "default_mapping": _default_mapping(filters),
+            "combine": COLOR_COMBINE.to_dict(),
+        }
+    )
+
+
+@process_bp.post("/color")
+def color_combine():
+    """Combine the mapped per-filter frames into an RGB image and store it.
+
+    JSON body: ``{"algorithm": <name>, "params": {...}, "mapping": {channel:
+    filter}}``. Renders from the latest stacked step.
+    """
+    payload = request.get_json(silent=True) or {}
+    mapping = payload.get("mapping") or {}
+    algorithm = payload.get("algorithm")
+    params = payload.get("params")
+
+    _, data = _latest_stacked()
+    if data is None:
+        return jsonify({"error": "no stacked image to colour-combine yet"}), 409
+
+    try:
+        combiner = COLOR_COMBINE.build(algorithm or COLOR_COMBINE.algorithms[0].name, params)
+        rgb = combine_image_data(data, mapping, combiner)
+    except (KeyError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 400
+
+    _store().put(session_id(), COLOR_KEY, rgb)
+    return jsonify({"shape": list(rgb.shape), "mapping": rgb.mapping})
+
+
+@process_bp.get("/color.png")
+def color_image():
+    """Serve the most recently combined RGB image as a PNG."""
+    rgb = _store().get(session_id(), COLOR_KEY)
+    if not isinstance(rgb, RGBImage):
+        return jsonify({"error": "no colour image; combine first"}), 404
+    buffer = io.BytesIO()
+    Image.fromarray(rgb.data, mode="RGB").save(buffer, format="PNG")
+    return Response(
+        buffer.getvalue(), mimetype="image/png", headers={"Cache-Control": "no-store"}
     )

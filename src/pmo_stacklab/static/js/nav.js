@@ -36,6 +36,9 @@ export async function buildNav() {
   } catch {
     /* keep the base links if the pipeline cannot be reached */
   }
+  // Colour combination is a terminal step parallel to the pipeline (not in ORDER),
+  // so it is appended explicitly after the process pages.
+  items.push(["Color", "/color"]);
 
   for (const bar of bars) {
     bar.replaceChildren();

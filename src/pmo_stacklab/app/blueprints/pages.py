@@ -16,6 +16,7 @@ _PAGES = {
     "/reproject": "reproject.html",
     "/stack": "stack.html",
     "/postprocess": "postprocess.html",
+    "/color": "color.html",
 }
 
 

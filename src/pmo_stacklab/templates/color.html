@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StackLab | Color</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Color Combination</h1>
+    <nav id="navbar"></nav>
+    <div class="content">
+        <div class="config-column">
+            <!-- Channel mapping + combine-algorithm config are rendered here from
+                 /api/color. -->
+            <div class="config" id="color-config"></div>
+            <button id="combine" class="run-button" type="button">Combine</button>
+        </div>
+        <div class="preview">
+            <h2>Color Image</h2>
+            <div id="color-preview" class="preview-pane">
+                <img id="color-image" class="preview-image active" alt="Color image" hidden>
+            </div>
+            <pre id="result" class="result"></pre>
+        </div>
+    </div>
+    <script type="module" src="{{ url_for('static', filename='js/color-page.js') }}"></script>
+</body>
+</html>

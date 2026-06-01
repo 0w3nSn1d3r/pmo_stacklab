@@ -133,6 +133,40 @@ export function getMetrics(step) {
 }
 
 /**
+ * Fetch the colour-combine schema: source step, available filters, channel names,
+ * a default channel->filter mapping, and the combine-algorithm schema.
+ * @returns {Promise<any>}
+ */
+export function getColorSchema() {
+  return requestJSON(`${API_ROOT}/color`);
+}
+
+/**
+ * Combine the mapped per-filter frames into an RGB image (stored server-side).
+ * @param {string} algorithm - combine algorithm name.
+ * @param {Object<string, number>} params - the algorithm's parameter values.
+ * @param {Object<string, string|null>} mapping - channel -> filter (or null).
+ * @returns {Promise<{shape: number[], mapping: Object<string, string|null>}>}
+ */
+export function combineColor(algorithm, params, mapping) {
+  return requestJSON(`${API_ROOT}/color`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ algorithm, params, mapping }),
+  });
+}
+
+/**
+ * Build the URL for the most recently combined RGB PNG (used as an <img> src).
+ * @param {{t?: number}} [params] - optional cache-buster `t`.
+ * @returns {string}
+ */
+export function colorImageUrl(params = {}) {
+  const qs = params.t != null ? `?t=${params.t}` : "";
+  return `${API_ROOT}/color.png${qs}`;
+}
+
+/**
  * Build the URL for a step's preview PNG. Used directly as an <img> src (the
  * browser fetches it), so this returns a URL string rather than a promise.
  *
