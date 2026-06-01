@@ -1,6 +1,7 @@
+from typing import Tuple, Callable
+
 from astropy.nddata import CCDData
 from astropy import stats
-from typing import Tuple, Callable
 from scipy.stats import mstats
 import numpy as np
 
@@ -87,12 +88,19 @@ class OutlierFilters:
             # Unpack percentile values from limits
             lower_perc, upper_perc = limits
 
-            # Calc data values at specified percentiles
-            lower_bound, upper_bound = np.stats.percentile(
+            # Per-pixel data values at the requested percentiles across frames.
+            # (Was np.stats.percentile, which does not exist -> np.percentile.)
+            lower_bound, upper_bound = np.percentile(
                 data, [lower_perc, upper_perc], axis=0
             )
 
-            # Mask all data outside percentile bounds
-            masked_data = np.ma.masked_outside(data, lower_bound, upper_bound)
-            return masked_data
+            # Mask, per pixel, any frame value outside its column's [lower, upper].
+            # np.ma.masked_outside requires SCALAR bounds, so build the mask by
+            # broadcasting the per-pixel (ny, nx) bounds against the (n, ny, nx)
+            # cube and union it with any incoming mask.
+            values = np.ma.getdata(data)
+            outside = (values < lower_bound) | (values > upper_bound)
+            return np.ma.masked_array(
+                values, mask=outside | np.ma.getmaskarray(data)
+            )
         return percentile_clip

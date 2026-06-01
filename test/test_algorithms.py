@@ -82,6 +82,19 @@ class StackRegistryTests(unittest.TestCase):
         self.assertGreaterEqual(value, 2.0)
         self.assertLessEqual(value, 6.0)
 
+    def test_percentile_clip_rejects_outlier(self) -> None:
+        # An extreme frame sits above the upper percentile and is masked out before
+        # the mean, so the result tracks the inlying frames, not the outlier.
+        frames = [_light("R", v) for v in (10.0, 11.0, 9.0, 10.5, 9.5, 5000.0)]
+        img = ImageData.from_frames(frames)
+        out = self._run_stack(
+            img, "percentile_clip", "mean",
+            rejection_params={"lower": 5.0, "upper": 95.0},
+        )
+        value = float(out.lights["R"][0].data.mean())
+        self.assertLess(value, 100.0)  # the 5000 outlier was clipped
+        self.assertGreater(value, 5.0)
+
     def test_invalid_param_rejected(self) -> None:
         with self.assertRaises(ValueError):
             OUTLIER_REJECTION.build("sigma_clip", {"sigma": -1.0})
@@ -90,7 +103,7 @@ class StackRegistryTests(unittest.TestCase):
         for subprocess in (OUTLIER_REJECTION, COADDITION):
             json.dumps(subprocess.to_dict())
         names = [a["name"] for a in OUTLIER_REJECTION.to_dict()["algorithms"]]
-        self.assertEqual(names, ["none", "sigma_clip", "winsorize"])
+        self.assertEqual(names, ["none", "sigma_clip", "winsorize", "percentile_clip"])
 
 
 class CalibrateRegistryTests(unittest.TestCase):

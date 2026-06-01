@@ -20,10 +20,8 @@ from .coaddition import Coaddition
 from .outlier_filters import OutlierFilters
 from .stack import no_rejection, stack_coordinator
 
-# NOTE: OutlierFilters.build_percentile_clip and Coaddition.build_ivw_mean are not
-# registered yet -- percentile_clip has an unfixed bug (np.stats.percentile), and
-# ivw_mean needs the bias frames as a call-time side input, which the operator
-# model does not yet supply. Both will be registered once those are addressed.
+# NOTE: Coaddition.build_ivw_mean is not registered yet -- it needs the bias frames
+# as a call-time side input, which the cube-operator model does not yet supply.
 
 OUTLIER_REJECTION = Subprocess(
     name="outlier_rejection",
@@ -83,6 +81,36 @@ OUTLIER_REJECTION = Subprocess(
                     maximum=0.5,
                     step=0.01,
                     description="Upper-tail fraction to winsorize (0-0.5).",
+                ),
+            ),
+        ),
+        Algorithm(
+            name="percentile_clip",
+            label="Percentile Clip",
+            description=(
+                "Mask, per pixel, any frame value below the lower or above the upper "
+                "percentile across the stack. Unlike sigma clip this uses fixed "
+                "percentile cuts rather than the data's spread."
+            ),
+            # Adapter: the underlying builder takes a single (lower, upper) pair, in
+            # percent (0-100).
+            builder=lambda lower, upper: OutlierFilters.build_percentile_clip((lower, upper)),
+            parameters=(
+                FloatParam(
+                    name="lower",
+                    default=5.0,
+                    minimum=0.0,
+                    maximum=50.0,
+                    step=0.5,
+                    description="Lower percentile cut (0-50).",
+                ),
+                FloatParam(
+                    name="upper",
+                    default=95.0,
+                    minimum=50.0,
+                    maximum=100.0,
+                    step=0.5,
+                    description="Upper percentile cut (50-100).",
                 ),
             ),
         ),
