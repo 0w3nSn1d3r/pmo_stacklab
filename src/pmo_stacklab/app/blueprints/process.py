@@ -9,6 +9,7 @@ Routes (mounted under ``/api``):
 * ``POST /api/run``               -- run a named process on the session's data.
 * ``GET  /api/preview/<step>``    -- the filters available to preview for a step.
 * ``GET  /api/preview/<step>/<filter>.png`` -- a display-stretched preview image.
+* ``GET  /api/metrics/<step>``    -- per-filter quality metrics for a step.
 
 The run endpoint is generic because it acts only on the ProcessSpec abstraction:
 it looks the requested process up in the configured pipeline (``config.ORDER``),
@@ -24,7 +25,13 @@ from flask import Blueprint, Response, current_app, jsonify, request
 from ..config import ORDER
 from ..store import SessionStore
 from ..utils import session_id
-from ...modules.core import ImageData, ProcessSpec, load_image_data, render_png
+from ...modules.core import (
+    ImageData,
+    ProcessSpec,
+    frame_metrics,
+    load_image_data,
+    render_png,
+)
 
 process_bp = Blueprint("process", __name__)
 
@@ -216,3 +223,25 @@ def preview_image(step: str, filter_name: str):
 
     # no-store: previews are cheap to regenerate and vary with the display controls.
     return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"})
+
+
+@process_bp.get("/metrics/<step>")
+def metrics(step: str):
+    """Return per-filter quality metrics for a completed ``step``.
+
+    Metrics are computed on the stored full-resolution, linear frame data (the
+    first frame per filter), never on the display preview -- so the numbers
+    describe the image, not the display stretch.
+    """
+    data = _step_data(step)
+    if data is None:
+        return jsonify({"error": f"no metrics available for {step!r}"}), 404
+    return jsonify(
+        {
+            "step": step,
+            "filters": {
+                filt: frame_metrics(frames[0])
+                for filt, frames in data.lights.items()
+            },
+        }
+    )

@@ -11,6 +11,7 @@ does not drag in the heavy per-process science modules.
 from .image_data import ImageData
 from .loader import DEFAULT_UNIT, load_frame, load_frames, load_image_data
 from .metadata_policy import MetadataPolicy
+from .metrics import frame_metrics
 from .parameters import BoolParam, ChoiceParam, FloatParam, IntParam, Parameter
 from .preview import DEFAULT_MAX_SIDE, downsample, render_png
 from .process import Operator, Process, sequential
@@ -27,6 +28,7 @@ __all__ = [
     "DEFAULT_MAX_SIDE",
     "downsample",
     "render_png",
+    "frame_metrics",
     "Parameter",
     "FloatParam",
     "IntParam",

@@ -123,6 +123,16 @@ export function getPreviewFilters(step) {
 }
 
 /**
+ * Fetch per-filter quality metrics for a step. Computed on full-resolution linear
+ * data, so the numbers are independent of the display stretch.
+ * @param {string} step - "Upload" or a process name.
+ * @returns {Promise<{step: string, filters: Object<string, Object<string, number>>}>}
+ */
+export function getMetrics(step) {
+  return requestJSON(`${API_ROOT}/metrics/${encodeURIComponent(step)}`);
+}
+
+/**
  * Build the URL for a step's preview PNG. Used directly as an <img> src (the
  * browser fetches it), so this returns a URL string rather than a promise.
  *

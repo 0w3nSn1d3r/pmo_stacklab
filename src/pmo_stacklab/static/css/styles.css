@@ -294,3 +294,23 @@ input[type="number"] {
   /* nearest-neighbour upscaling so pixel structure stays honest when zoomed */
   image-rendering: pixelated;
 }
+
+.metrics-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 16rem;
+}
+
+.metrics-table td {
+  padding: 0.2rem 0.75rem 0.2rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.metric-name {
+  color: var(--muted);
+}
+
+.metric-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
