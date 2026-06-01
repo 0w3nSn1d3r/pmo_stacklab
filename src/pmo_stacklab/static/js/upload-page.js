@@ -102,7 +102,7 @@ async function init() {
     resetBtn.addEventListener("click", async () => {
       try {
         await resetQuickStackConfig();
-        setResult(resultEl, "Quick Stack settings reset to default.");
+        setResult(resultEl, "Quick Stack settings reset to default.", "success");
       } catch (err) {
         setResult(resultEl, `Error: ${err.message}`);
       }
@@ -111,11 +111,17 @@ async function init() {
 }
 
 /**
+ * Show a status line. ``kind`` is "error" (default, red) or "success" (green), so
+ * a confirmation is not styled as an alarming error.
+ *
  * @param {Element|null} el
  * @param {string} text
+ * @param {"error"|"success"} [kind]
  */
-function setResult(el, text) {
-  if (el) el.textContent = text;
+function setResult(el, text, kind = "error") {
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle("success", kind === "success");
 }
 
 document.addEventListener("DOMContentLoaded", init);

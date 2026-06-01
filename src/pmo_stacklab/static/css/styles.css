@@ -344,6 +344,13 @@ input:focus-visible {
   display: none;
 }
 
+/* A success/confirmation variant, so non-error status messages are not red. */
+.result.success {
+  background: var(--surface-2);
+  border-color: var(--green);
+  color: var(--green);
+}
+
 /* Preview panel ----------------------------------------------------------- */
 
 .preview-pane {
