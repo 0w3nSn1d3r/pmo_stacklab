@@ -1,16 +1,33 @@
 /* PMO StackLab -- base stylesheet.
-   A dark theme suited to inspecting astronomical images, with layout for the
-   schema-driven configuration menus, the pedagogical info tips, and the
-   result/preview column. */
+   A clean, collegiate light theme in the University of Oregon palette: Eugene
+   Green (#154733) and UO Yellow (#FEE123) on white. Green carries text, headers,
+   and primary actions; gold is reserved for accents (the header rule, active-state
+   bars, focus rings, selected edges) -- never as text or large fills, where it
+   would be illegible. Preview images keep a black backdrop, which is correct for
+   inspecting astronomical data. */
 
 :root {
-  --bg: #0d1117;
-  --panel: #161b22;
-  --panel-2: #1c2330;
-  --border: #30363d;
-  --text: #d7dde5;
-  --muted: #8b949e;
-  --accent: #4c8dff;
+  /* Brand */
+  --green: #154733;        /* UO Eugene Green -- primary */
+  --green-hover: #1d5e44;  /* lighter green for hovers/links */
+  --green-deep: #0e3324;   /* deeper green for header gradient/active */
+  --gold: #fee123;         /* UO Yellow -- accent only */
+  --gold-line: #e9c200;    /* slightly deeper gold for thin lines on white */
+
+  /* Surfaces & text */
+  --bg: #f3f6f3;           /* page background (faint green-gray) */
+  --surface: #ffffff;      /* panels/cards */
+  --surface-2: #eef3ef;    /* selected/inset fills */
+  --text: #15231d;         /* near-green-black body text */
+  --muted: #5d6b63;        /* secondary text */
+  --border: #d8e1db;       /* hairlines */
+  --danger: #b3261e;       /* errors */
+
+  --image-bg: #0b0f0d;     /* backdrop behind astronomical previews */
+  --radius: 0.6rem;
+  --shadow: 0 1px 3px rgba(21, 71, 51, 0.08), 0 4px 12px rgba(21, 71, 51, 0.06);
+
+  accent-color: var(--green); /* range sliders, checkboxes, etc. */
 }
 
 * {
@@ -23,39 +40,57 @@ body {
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Header band: deep green with a gold rule beneath -- the collegiate signature. */
 h1 {
-  padding: 1rem 1.5rem 0;
   margin: 0;
-  font-weight: 600;
+  padding: 1.1rem 2rem;
+  background: linear-gradient(180deg, var(--green) 0%, var(--green-deep) 100%);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border-bottom: 4px solid var(--gold);
+}
+
+h2 {
+  font-weight: 650;
+  color: var(--green);
 }
 
 /* Navigation -------------------------------------------------------------- */
 
 #navbar {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.25rem;
   flex-wrap: wrap;
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 2rem;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
 .nav-link {
   color: var(--muted);
   text-decoration: none;
-  padding: 0.25rem 0.6rem;
+  padding: 0.4rem 0.85rem;
   border-radius: 0.4rem;
+  font-weight: 550;
+  border-bottom: 3px solid transparent; /* reserve space for the active rule */
+  transition: color 0.12s ease, background 0.12s ease;
 }
 
 .nav-link:hover {
-  color: var(--text);
-  background: var(--panel-2);
+  color: var(--green);
+  background: var(--surface-2);
 }
 
+/* Active page: green text with a gold tab underline. */
 .nav-link[aria-current="page"] {
-  color: var(--accent);
-  background: var(--panel-2);
+  color: var(--green);
+  border-bottom-color: var(--gold-line);
+  border-radius: 0.4rem 0.4rem 0 0;
 }
 
 /* Page layout: configuration column + result/preview column --------------- */
@@ -63,8 +98,10 @@ h1 {
 .content {
   display: grid;
   grid-template-columns: minmax(340px, 1fr) 2fr;
-  gap: 1.5rem;
-  padding: 1.5rem;
+  gap: 1.75rem;
+  padding: 1.75rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
   align-items: start;
 }
 
@@ -78,10 +115,11 @@ h1 {
 
 .config-menu {
   border: 1px solid var(--border);
-  border-radius: 0.6rem;
-  background: var(--panel);
+  border-radius: var(--radius);
+  background: var(--surface);
   margin: 0 0 1rem;
-  padding: 0.75rem 1rem 1rem;
+  padding: 0.85rem 1.1rem 1.1rem;
+  box-shadow: var(--shadow);
 }
 
 .config-menu > legend {
@@ -89,18 +127,21 @@ h1 {
   align-items: center;
   gap: 0.4rem;
   padding: 0 0.5rem;
-  font-weight: 600;
-  color: var(--accent);
+  font-weight: 700;
+  color: var(--green);
 }
 
 algo-option {
   display: block;
-  padding: 0.4rem 0.5rem;
+  padding: 0.45rem 0.6rem;
   border-radius: 0.4rem;
+  border-left: 3px solid transparent; /* gold edge appears when selected */
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 
 algo-option.selected {
-  background: var(--panel-2);
+  background: var(--surface-2);
+  border-left-color: var(--gold-line);
 }
 
 .algo-header {
@@ -108,16 +149,16 @@ algo-option.selected {
   align-items: center;
   gap: 0.4rem;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 550;
 }
 
 .algo-params {
   border: none;
-  margin: 0.4rem 0 0;
+  margin: 0.5rem 0 0;
   padding: 0 0 0 1.6rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .algo-params[hidden] {
@@ -147,6 +188,8 @@ algo-option.selected {
   min-width: 3rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
+  color: var(--green);
+  font-weight: 600;
 }
 
 .param-unsupported {
@@ -155,12 +198,21 @@ algo-option.selected {
 }
 
 select,
-input[type="number"] {
-  background: var(--bg);
+input[type="number"],
+input[type="file"] {
+  background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 0.3rem;
-  padding: 0.2rem 0.4rem;
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.45rem;
+  font: inherit;
+}
+
+select:focus,
+input:focus-visible {
+  outline: 2px solid var(--gold-line);
+  outline-offset: 1px;
+  border-color: var(--green);
 }
 
 /* Info tips (pedagogy) ----------------------------------------------------- */
@@ -177,8 +229,8 @@ input[type="number"] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.1em;
-  height: 1.1em;
+  width: 1.15em;
+  height: 1.15em;
   border: 1px solid var(--muted);
   border-radius: 50%;
   font-size: 0.7rem;
@@ -187,12 +239,14 @@ input[type="number"] {
   font-family: Georgia, "Times New Roman", serif;
   color: var(--muted);
   line-height: 1;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
 }
 
 .info-tip:hover .info-icon,
 .info-tip:focus .info-icon {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--gold);
 }
 
 /* The explanatory bubble, hidden until the icon is hovered or focused. */
@@ -204,19 +258,30 @@ input[type="number"] {
   transform: translateX(-50%);
   width: max-content;
   max-width: 18rem;
-  padding: 0.5rem 0.7rem;
-  background: var(--panel-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-  box-shadow: 0 0.3rem 0.8rem rgba(0, 0, 0, 0.5);
+  padding: 0.55rem 0.75rem;
+  background: var(--green);
+  color: #fff;
+  border: 1px solid var(--green-deep);
+  border-radius: 0.45rem;
+  box-shadow: 0 0.4rem 1rem rgba(14, 51, 36, 0.35);
   font-size: 0.8rem;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.45;
   white-space: normal;
   visibility: hidden;
   opacity: 0;
   transition: opacity 0.12s ease;
+}
+
+/* A small gold pointer under the bubble, tying it to the brand. */
+.info-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 0.4rem solid transparent;
+  border-top-color: var(--green);
 }
 
 .info-tip:hover .info-bubble,
@@ -230,17 +295,33 @@ input[type="number"] {
 
 .run-button {
   align-self: flex-start;
-  background: var(--accent);
+  background: var(--green);
   color: #fff;
   border: none;
-  border-radius: 0.4rem;
-  padding: 0.55rem 1.2rem;
+  border-radius: 0.45rem;
+  padding: 0.6rem 1.4rem;
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: background 0.12s ease, transform 0.05s ease;
+}
+
+.run-button:hover:not(:disabled) {
+  background: var(--green-hover);
+}
+
+.run-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.run-button:focus-visible {
+  outline: 3px solid var(--gold-line);
+  outline-offset: 2px;
 }
 
 .run-button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: default;
 }
 
@@ -249,11 +330,12 @@ input[type="number"] {
 }
 
 .result {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 0.6rem;
-  padding: 0.5rem 1rem;
-  color: #ff9d9d; /* the result line is now used only for error/status text */
+  background: #fdecea;
+  border: 1px solid #f3c7c2;
+  border-radius: var(--radius);
+  padding: 0.6rem 1rem;
+  color: var(--danger);
+  font-weight: 550;
   white-space: pre-wrap;
   overflow-x: auto;
 }
@@ -267,7 +349,7 @@ input[type="number"] {
 .preview-pane {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .preview-controls {
@@ -275,6 +357,11 @@ input[type="number"] {
   flex-wrap: wrap;
   gap: 1rem;
   align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
 }
 
 .preview-control {
@@ -299,8 +386,9 @@ input[type="number"] {
   max-width: 100%;
   height: auto;
   border: 1px solid var(--border);
-  border-radius: 0.6rem;
-  background: #000;
+  border-radius: var(--radius);
+  background: var(--image-bg);
+  box-shadow: var(--shadow);
   /* nearest-neighbour upscaling so pixel structure stays honest when zoomed */
   image-rendering: pixelated;
   visibility: hidden; /* only the .active view is shown */
@@ -319,7 +407,7 @@ input[type="number"] {
 
 .blink-toggle,
 .zoom-out {
-  padding: 0.35rem 0.9rem;
+  padding: 0.4rem 1rem;
   font-size: 0.9rem;
 }
 
@@ -329,19 +417,29 @@ input[type="number"] {
 }
 
 .blink-label {
-  color: var(--muted);
+  color: var(--green);
   font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .metrics-table {
   border-collapse: collapse;
   font-size: 0.85rem;
   min-width: 16rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
 .metrics-table td {
-  padding: 0.2rem 0.75rem 0.2rem 0;
+  padding: 0.35rem 0.85rem;
   border-bottom: 1px solid var(--border);
+}
+
+.metrics-table tr:last-child td {
+  border-bottom: none;
 }
 
 .metric-name {
@@ -351,4 +449,16 @@ input[type="number"] {
 .metric-value {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* General content text (home/overview pages). */
+#intro,
+#overview {
+  max-width: 60ch;
+}
+
+#overview li {
+  margin: 0.3rem 0;
 }
