@@ -76,8 +76,13 @@ class PipelineSpec:
         :returns: a :class:`Pipeline` of configured processes, in pipeline order.
         :raises KeyError: if a recipe names an algorithm a subprocess does not
             offer.
-        :raises ValueError: if a submitted parameter value is invalid.
+        :raises ValueError: if a submitted parameter value is invalid, or the
+            recipe is not a JSON object.
         """
+        if recipe is not None and not isinstance(recipe, Mapping):
+            raise ValueError(
+                f"the recipe must be a JSON object, got {type(recipe).__name__}."
+            )
         chosen = recipe or {}
         processes = tuple(
             spec.build(chosen.get(spec.name)) for spec in self.processes

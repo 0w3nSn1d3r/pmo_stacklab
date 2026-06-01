@@ -61,10 +61,21 @@ class ProcessSpec(Generic[Op]):
             subprocess.
         :raises ValueError: if a submitted parameter value is invalid.
         """
+        if configs is not None and not isinstance(configs, Mapping):
+            raise ValueError(
+                f"{self.name}: configuration must be a JSON object, got "
+                f"{type(configs).__name__}."
+            )
         chosen = configs or {}
         operators: list[Op] = []
         for subprocess in self.subprocesses:
             choice = chosen.get(subprocess.name) or {}
+            if not isinstance(choice, Mapping):
+                raise ValueError(
+                    f"{self.name}: the {subprocess.name!r} setting must be a JSON "
+                    f"object with an 'algorithm' (and optional 'params'), got "
+                    f"{type(choice).__name__}."
+                )
             algorithm = choice.get("algorithm") or subprocess.algorithms[0].name
             params = choice.get("params")
             # The registry erases the operator type to `object`; the spec

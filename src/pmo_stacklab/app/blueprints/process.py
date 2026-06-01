@@ -64,6 +64,20 @@ def _find(process_name: str | None) -> tuple[int | None, ProcessSpec | None]:
     return None, None
 
 
+def _require_mapping(value: object, what: str) -> dict:
+    """Return ``value`` as a dict, treating ``None`` as empty, else raise ValueError.
+
+    Guards endpoints against malformed JSON bodies (e.g. a list or string where an
+    object is expected) so they answer with a clear 400 rather than crashing into a
+    500 deep in the build step.
+    """
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ValueError(f"{what} must be a JSON object, got {type(value).__name__}.")
+    return value
+
+
 @process_bp.app_errorhandler(413)
 def _too_large(_error):
     """Return the oversize-request rejection as JSON, matching the rest of the API.
@@ -565,15 +579,15 @@ def color_combine():
     filter}}``. Renders from the latest stacked step.
     """
     payload = request.get_json(silent=True) or {}
-    mapping = payload.get("mapping") or {}
     algorithm = payload.get("algorithm")
-    params = payload.get("params")
 
     _, data = _latest_stacked()
     if data is None:
         return jsonify({"error": "no stacked image to colour-combine yet"}), 409
 
     try:
+        mapping = _require_mapping(payload.get("mapping"), "mapping")
+        params = _require_mapping(payload.get("params"), "params")
         combiner = COLOR_COMBINE.build(algorithm or COLOR_COMBINE.algorithms[0].name, params)
         rgb = combine_image_data(data, mapping, combiner)
     except (KeyError, ValueError) as exc:
