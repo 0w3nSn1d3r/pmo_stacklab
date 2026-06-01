@@ -63,6 +63,22 @@ def _find(process_name: str | None) -> tuple[int | None, ProcessSpec | None]:
     return None, None
 
 
+@process_bp.app_errorhandler(413)
+def _too_large(_error):
+    """Return the oversize-request rejection as JSON, matching the rest of the API.
+
+    Werkzeug aborts requests exceeding MAX_CONTENT_LENGTH with 413 before the view
+    runs; without this the client would get an HTML error page instead of the
+    ``{"error": ...}`` shape the frontend expects.
+    """
+    limit = current_app.config.get("MAX_CONTENT_LENGTH")
+    gib = f"{limit / (1024 ** 3):.1f} GiB" if limit else "the configured limit"
+    return (
+        jsonify({"error": f"upload too large; the limit is {gib} per request."}),
+        413,
+    )
+
+
 @process_bp.post("/upload")
 def upload():
     """Load uploaded FITS frames into the session's initial ImageData.
@@ -78,6 +94,21 @@ def upload():
     }
     if not streams["lights"]:
         return jsonify({"error": "at least one light frame is required"}), 400
+
+    # Cap the frame count so one request cannot exhaust memory (frames are held in
+    # RAM). The total request-body size is capped separately by MAX_CONTENT_LENGTH.
+    total_frames = sum(len(s) for s in streams.values())
+    limit = current_app.config["MAX_FRAMES_PER_UPLOAD"]
+    if total_frames > limit:
+        return (
+            jsonify(
+                {
+                    "error": f"too many frames in one upload ({total_frames}); "
+                    f"the limit is {limit}. Upload in smaller batches."
+                }
+            ),
+            400,
+        )
 
     try:
         data = load_image_data(

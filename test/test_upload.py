@@ -126,6 +126,26 @@ class UploadEndpointTests(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 400)
 
+    def test_too_many_frames_returns_400(self) -> None:
+        app = build_app({"MAX_FRAMES_PER_UPLOAD": 2})
+        client = app.test_client()
+        data = {
+            "lights": [
+                (_fits_bytes(1.0, filt="R"), f"l{i}.fits") for i in range(3)
+            ]
+        }
+        resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("too many frames", resp.get_json()["error"])
+
+    def test_oversize_request_returns_json_413(self) -> None:
+        app = build_app({"MAX_CONTENT_LENGTH": 1024})  # 1 KiB cap
+        client = app.test_client()
+        data = {"lights": [(_fits_bytes(1.0, filt="R"), "l1.fits")]}  # > 1 KiB
+        resp = client.post("/api/upload", data=data, content_type="multipart/form-data")
+        self.assertEqual(resp.status_code, 413)
+        self.assertIn("too large", resp.get_json()["error"])
+
     def test_upload_bad_fits_returns_400(self) -> None:
         resp = self.client.post(
             "/api/upload",

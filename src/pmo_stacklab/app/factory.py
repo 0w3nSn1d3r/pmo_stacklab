@@ -24,11 +24,22 @@ def build_app(config=None):
     # the per-session working data. QUICKSTACK_CONFIG_PATH is where the persisted
     # Quick Stack recipe lives (the single-user app keeps one under the instance
     # folder); a multi-user build would key it per user.
+    #
+    # The upload limits guard against a single request exhausting the machine's RAM
+    # (frames are held in memory): MAX_CONTENT_LENGTH caps the whole request body
+    # (Werkzeug aborts oversize requests with 413), and MAX_FRAMES_PER_UPLOAD caps
+    # the frame count per upload. Both are tunable per deployment.
     app.config.update(
         SECRET_KEY=os.environ.get("PMO_STACKLAB_SECRET", "dev-only-change-me"),
         QUICKSTACK_CONFIG_PATH=os.environ.get(
             "PMO_STACKLAB_QUICKSTACK",
             os.path.join(app.instance_path, "quickstack.json"),
+        ),
+        MAX_CONTENT_LENGTH=int(
+            os.environ.get("PMO_STACKLAB_MAX_UPLOAD_BYTES", 2 * 1024 * 1024 * 1024)
+        ),  # 2 GiB total request body
+        MAX_FRAMES_PER_UPLOAD=int(
+            os.environ.get("PMO_STACKLAB_MAX_FRAMES", 500)
         ),
     )
     if config:
