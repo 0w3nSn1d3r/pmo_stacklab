@@ -285,6 +285,16 @@ input[type="number"] {
   color: var(--muted);
 }
 
+/* Blink comparator: stack every view's image in the SAME grid cell so toggling
+   swaps them in place (a true blink) rather than moving anything. */
+.blink-stack {
+  display: grid;
+}
+
+.blink-stack > .preview-image {
+  grid-area: 1 / 1; /* all images occupy the one cell, overlaid */
+}
+
 .preview-image {
   max-width: 100%;
   height: auto;
@@ -293,6 +303,28 @@ input[type="number"] {
   background: #000;
   /* nearest-neighbour upscaling so pixel structure stays honest when zoomed */
   image-rendering: pixelated;
+  visibility: hidden; /* only the .active view is shown */
+}
+
+.preview-image.active {
+  visibility: visible;
+}
+
+.blink-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 1.5rem;
+}
+
+.blink-toggle {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+}
+
+.blink-label {
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .metrics-table {

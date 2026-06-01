@@ -1,20 +1,24 @@
 /**
- * @file The preview panel: shows a step's rendered image with display controls.
+ * @file The preview panel: a step's rendered image, metrics, and before/after blink.
  *
- * After a step runs (or after upload), this panel displays the server-rendered
- * preview PNG for a chosen filter. For the linear steps (Upload..Stack) it offers
- * display-only controls -- a stretch-type dropdown and an intensity slider -- that
- * re-request the image with new query params; these affect ONLY the displayed
- * copy, never the data flowing through the pipeline.
+ * After a step runs (or after upload), this panel shows the server-rendered preview
+ * PNG for a chosen filter, plus a metrics table for that filter.
  *
- * Post-Process output is already display-ready (the user's own stretch produced
- * it), so for that step the panel renders with stretch="linear" and hides the
- * display controls to avoid double-stretching.
+ * For the linear steps (Upload..Stack) it offers display-only controls -- a
+ * stretch-type dropdown and an intensity slider -- that re-request the image with
+ * new query params; these affect ONLY the displayed copy, never the data flowing
+ * through the pipeline. Post-Process output is already display-ready (the user's
+ * own stretch produced it), so that step renders with stretch="linear" and hides
+ * the display controls to avoid double-stretching.
  *
- * Below the image it shows a metrics table for the selected filter. Metrics come
- * from /api/metrics (computed on full-resolution linear data), so they are
- * independent of the display stretch -- the numbers describe the image, not how
- * it is shown.
+ * BLINK: when a "before" step is supplied (the step's input -- i.e. the previous
+ * step's output), the panel shows a before/after comparator. The two images are
+ * stacked in the SAME spatial position and a toggle button flips which is visible,
+ * so the eye sees only what changed -- the classic astronomer's "blink". Both
+ * images are always rendered with IDENTICAL filter + stretch + intensity, so the
+ * comparison reflects the processing, not a difference in display. The metrics
+ * table swaps together with the image, so the numbers always describe the image
+ * on screen.
  *
  * @typedef {import("./api.js").ProcessSchema} ProcessSchema
  */
@@ -37,13 +41,18 @@ const METRIC_LABELS = {
  * Render the preview panel for a step into a container.
  *
  * @param {HTMLElement} container - the element to render the panel into.
- * @param {string} step - the step name to preview ("Upload" or a process name).
- * @param {{displayControls?: boolean}} [options] - displayControls defaults to
- *   true; pass false for already-display-ready output (Post-Process).
+ * @param {string} step - the step to preview ("Upload" or a process name).
+ * @param {{displayControls?: boolean, beforeStep?: string|null}} [options]
+ *   - displayControls: defaults to true; pass false for already-display-ready
+ *     output (Post-Process).
+ *   - beforeStep: the step whose output is this step's input; when given (and it
+ *     has a preview), the panel becomes a before/after blink. Omit for steps with
+ *     no predecessor (Upload).
  * @returns {Promise<void>}
  */
 export async function showPreview(container, step, options = {}) {
   const displayControls = options.displayControls !== false;
+  const beforeStep = options.beforeStep || null;
   container.replaceChildren();
 
   let filters;
@@ -58,91 +67,145 @@ export async function showPreview(container, step, options = {}) {
     return;
   }
 
-  // Controls: filter picker, and (for linear steps) stretch + intensity.
+  // A "view" is one comparable image: its step and a human label. Single-view for
+  // a step with no predecessor; two-view (before, after) for the blink.
+  const views = await buildViews(step, beforeStep);
+
+  // -- controls: filter, optional display stretch/intensity, optional blink toggle
   const controls = document.createElement("div");
   controls.className = "preview-controls";
 
-  const filterSelect = document.createElement("select");
-  for (const filt of filters) {
-    const opt = document.createElement("option");
-    opt.value = filt;
-    opt.textContent = filt;
-    filterSelect.appendChild(opt);
-  }
+  const filterSelect = selectOf(filters);
   controls.append(labelled("Filter", filterSelect));
 
   let stretchSelect = null;
   let intensityInput = null;
   if (displayControls) {
-    stretchSelect = document.createElement("select");
-    for (const s of STRETCHES) {
-      const opt = document.createElement("option");
-      opt.value = s;
-      opt.textContent = s;
-      stretchSelect.appendChild(opt);
-    }
-    stretchSelect.value = "asinh";
-
+    stretchSelect = selectOf(STRETCHES, "asinh");
     intensityInput = document.createElement("input");
     intensityInput.type = "range";
     intensityInput.min = "0";
     intensityInput.max = "1";
     intensityInput.step = "0.05";
     intensityInput.value = "0.5";
-
     controls.append(
       labelled("Display stretch", stretchSelect),
       labelled("Intensity", intensityInput)
     );
   }
 
-  const img = document.createElement("img");
-  img.className = "preview-image";
-  img.alt = `${step} preview`;
+  // -- image stack: one <img> per view, overlaid in the same grid cell
+  const stack = document.createElement("div");
+  stack.className = "blink-stack";
+  const images = views.map((view) => {
+    const img = document.createElement("img");
+    img.className = "preview-image";
+    img.alt = `${view.step} preview`;
+    stack.appendChild(img);
+    return img;
+  });
+
+  // -- blink toggle (only when there is something to blink between)
+  const blinkBar = document.createElement("div");
+  blinkBar.className = "blink-bar";
+  let activeIndex = views.length - 1; // default to "after"
+  let toggleBtn = null;
+  const activeLabel = document.createElement("span");
+  activeLabel.className = "blink-label";
+  if (views.length > 1) {
+    toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "run-button blink-toggle";
+    toggleBtn.textContent = "Blink ⇄"; // ⇄
+    blinkBar.append(toggleBtn, activeLabel);
+  }
 
   const metricsTable = document.createElement("table");
   metricsTable.className = "metrics-table";
 
-  container.append(controls, img, metricsTable);
+  container.append(controls, blinkBar, stack, metricsTable);
 
-  // Metrics are per-filter and independent of the display stretch, so fetch them
-  // once for the step and just re-render the selected filter on filter change.
-  /** @type {Object<string, Object<string, number>>} */
-  let metricsByFilter = {};
-  try {
-    ({ filters: metricsByFilter } = await getMetrics(step));
-  } catch {
-    /* leave metrics empty; the image preview still works */
-  }
+  // Metrics per view step (independent of display stretch; fetched once each).
+  const metricsByStep = {};
+  await Promise.all(
+    views.map(async (view) => {
+      try {
+        const { filters: m } = await getMetrics(view.step);
+        metricsByStep[view.step] = m;
+      } catch {
+        metricsByStep[view.step] = {};
+      }
+    })
+  );
 
-  const refreshImage = () => {
-    img.src = previewImageUrl(step, filterSelect.value, {
-      stretch: stretchSelect ? stretchSelect.value : "linear",
-      intensity: intensityInput ? Number(intensityInput.value) : 0.5,
-      // cache-buster so the browser re-fetches when controls change
-      t: Date.now(),
+  const displayParams = () => ({
+    stretch: stretchSelect ? stretchSelect.value : "linear",
+    intensity: intensityInput ? Number(intensityInput.value) : 0.5,
+  });
+
+  // Re-request every view's image with the shared (matched) display params, so the
+  // blink only ever differs by the processing -- never by the display transform.
+  const refreshImages = () => {
+    const params = displayParams();
+    views.forEach((view, i) => {
+      images[i].src = previewImageUrl(view.step, filterSelect.value, {
+        ...params,
+        t: Date.now(), // cache-buster
+      });
     });
   };
 
-  const refreshMetrics = () => {
-    renderMetrics(metricsTable, metricsByFilter[filterSelect.value]);
+  // Show only the active view's image and its metrics; keep the on-screen image in
+  // a fixed position so toggling reads as a blink, not a layout change.
+  const showActive = () => {
+    images.forEach((img, i) => img.classList.toggle("active", i === activeIndex));
+    const view = views[activeIndex];
+    renderMetrics(metricsTable, (metricsByStep[view.step] || {})[filterSelect.value]);
+    if (views.length > 1) activeLabel.textContent = view.label;
   };
 
   filterSelect.addEventListener("change", () => {
-    refreshImage();
-    refreshMetrics();
+    refreshImages();
+    showActive();
   });
-  if (stretchSelect) stretchSelect.addEventListener("change", refreshImage);
-  if (intensityInput) intensityInput.addEventListener("input", refreshImage);
+  if (stretchSelect) stretchSelect.addEventListener("change", refreshImages);
+  if (intensityInput) intensityInput.addEventListener("input", refreshImages);
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", () => {
+      activeIndex = (activeIndex + 1) % views.length;
+      showActive();
+    });
+  }
 
-  refreshImage();
-  refreshMetrics();
+  refreshImages();
+  showActive();
 }
 
 /**
- * Render a metrics dict into a two-column table. Counts show as integers; the
- * other statistics use a compact significant-figure format so large ADU values
- * and small fractions both read cleanly.
+ * Build the list of views for a step. Returns a single "after" view, or -- when a
+ * usable before step is given -- a [before, after] pair for the blink. The before
+ * step is dropped (single view) if it has no available preview.
+ *
+ * @param {string} step
+ * @param {string|null} beforeStep
+ * @returns {Promise<Array<{step: string, label: string}>>}
+ */
+async function buildViews(step, beforeStep) {
+  const after = { step, label: `After — ${step}` };
+  if (!beforeStep) return [after];
+  try {
+    const { filters } = await getPreviewFilters(beforeStep);
+    if (!filters.length) return [after];
+  } catch {
+    return [after];
+  }
+  return [{ step: beforeStep, label: `Before — ${beforeStep}` }, after];
+}
+
+/**
+ * Render a metrics dict into a two-column table. Counts show as integers; other
+ * statistics use a compact format so large ADU values and small fractions both
+ * read cleanly.
  *
  * @param {HTMLTableElement} table
  * @param {Object<string, number>|undefined} metrics
@@ -174,6 +237,24 @@ function formatNumber(x) {
   const abs = Math.abs(x);
   if (abs !== 0 && (abs >= 1e5 || abs < 1e-3)) return x.toExponential(3);
   return x.toFixed(3);
+}
+
+/**
+ * Build a <select> from string options, optionally pre-selecting one.
+ * @param {string[]} options
+ * @param {string} [selected]
+ * @returns {HTMLSelectElement}
+ */
+function selectOf(options, selected) {
+  const select = document.createElement("select");
+  for (const value of options) {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = value;
+    if (value === selected) opt.selected = true;
+    select.appendChild(opt);
+  }
+  return select;
 }
 
 /**

@@ -9,7 +9,7 @@
  * The page is fully generic: the same script drives every process page, with the
  * process identity supplied by the template's `data-process` attribute.
  */
-import { getProcessSchema, runProcess } from "./api.js";
+import { getPipeline, getProcessSchema, runProcess } from "./api.js";
 import { buildNav } from "./nav.js";
 import { showPreview } from "./preview-panel.js";
 import "./config-menu.js"; // registers <config-menu> / <algo-option>
@@ -34,6 +34,17 @@ async function init() {
   // Post-Process output is already display-ready (the user's own stretch made it),
   // so its preview is shown as-is without the display-stretch controls.
   const displayControls = processName !== "Post-Process";
+
+  // The blink "before" is this step's input -- the previous step in the pipeline,
+  // or "Upload" for the first process.
+  let beforeStep = "Upload";
+  try {
+    const { order } = await getPipeline();
+    const idx = order.indexOf(processName);
+    if (idx > 0) beforeStep = order[idx - 1];
+  } catch {
+    /* fall back to "Upload" as the before step */
+  }
 
   /** @type {import("./api.js").ProcessSchema} */
   let schema;
@@ -65,7 +76,9 @@ async function init() {
     try {
       await runProcess(processName, configs);
       setResult(resultEl, "");
-      if (previewEl) await showPreview(previewEl, processName, { displayControls });
+      if (previewEl) {
+        await showPreview(previewEl, processName, { displayControls, beforeStep });
+      }
     } catch (err) {
       setResult(resultEl, `Error: ${err.message}`);
     } finally {
