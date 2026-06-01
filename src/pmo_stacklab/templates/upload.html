@@ -32,6 +32,17 @@
                 </div>
             </form>
             <button id="upload" class="run-button" type="button">Upload Frames</button>
+
+            <!-- Quick Stack: one-click run of the saved pipeline recipe, plus a
+                 settings menu to configure that recipe or reset it. -->
+            <div class="quickstack-bar">
+                <button id="quick-stack" class="run-button" type="button">Quick Stack</button>
+                <details class="quickstack-settings">
+                    <summary class="qs-gear" title="Quick Stack settings" aria-label="Quick Stack settings">&#9881;</summary>
+                    <a id="qs-configure" class="qs-option" href="/calibrate?quickstack=1">Configure</a>
+                    <button id="qs-reset" class="qs-option" type="button">Reset to Default</button>
+                </details>
+            </div>
         </div>
         <div class="preview">
             <h2>Preview</h2>

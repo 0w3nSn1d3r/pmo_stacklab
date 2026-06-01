@@ -167,6 +167,43 @@ export function colorImageUrl(params = {}) {
 }
 
 /**
+ * Fetch the saved Quick Stack recipe and the whole-pipeline schema.
+ * @returns {Promise<{recipe: Object, schema: {processes: ProcessSchema[]}}>}
+ */
+export function getQuickStackConfig() {
+  return requestJSON(`${API_ROOT}/quickstack`);
+}
+
+/**
+ * Persist a Quick Stack recipe (validated server-side).
+ * @param {Object} recipe - process name -> per-subprocess {algorithm, params}.
+ * @returns {Promise<{saved: boolean, recipe: Object}>}
+ */
+export function saveQuickStackConfig(recipe) {
+  return requestJSON(`${API_ROOT}/quickstack`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(recipe),
+  });
+}
+
+/**
+ * Reset the Quick Stack recipe to the factory default.
+ * @returns {Promise<{recipe: Object}>}
+ */
+export function resetQuickStackConfig() {
+  return requestJSON(`${API_ROOT}/quickstack/reset`, { method: "POST" });
+}
+
+/**
+ * Apply the saved Quick Stack recipe to the uploaded frames in one shot.
+ * @returns {Promise<any>} the final process-output summary.
+ */
+export function runQuickStack() {
+  return requestJSON(`${API_ROOT}/quickstack/run`, { method: "POST" });
+}
+
+/**
  * Build the download URL for a step/filter's full-resolution frame.
  * @param {string} step - "Upload" or a process name.
  * @param {string} filter - the filter to download.

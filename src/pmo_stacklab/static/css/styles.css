@@ -518,6 +518,85 @@ input:focus-visible {
   font-weight: 600;
 }
 
+/* Quick Stack bar: the one-click button + its settings gear menu. */
+.quickstack-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The Quick Stack button reads as the gold-accented "hero" action: a gold edge on
+   the green button ties it to the brand without using gold as a fill. */
+#quick-stack {
+  border: 2px solid var(--gold);
+}
+
+.quickstack-settings {
+  position: relative;
+}
+
+.quickstack-settings > .qs-gear {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  font-size: 1.2rem;
+  color: var(--green);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  user-select: none;
+}
+
+.quickstack-settings > .qs-gear::-webkit-details-marker {
+  display: none;
+}
+
+.quickstack-settings > .qs-gear:hover {
+  background: var(--surface-2);
+}
+
+.quickstack-settings[open] > .qs-gear {
+  outline: 2px solid var(--gold-line);
+  outline-offset: 1px;
+}
+
+/* The two settings items drop into a small card below the gear. */
+.qs-option {
+  display: block;
+  position: absolute;
+  left: 0;
+  min-width: 11rem;
+  padding: 0.5rem 0.8rem;
+  text-align: left;
+  color: var(--green);
+  text-decoration: none;
+  font: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  z-index: 10;
+}
+
+.qs-option:hover {
+  background: var(--surface-2);
+}
+
+#qs-configure {
+  top: calc(100% + 0.3rem);
+  border-radius: 0.45rem 0.45rem 0 0;
+}
+
+#qs-reset {
+  top: calc(100% + 0.3rem + 2.4rem);
+  border-top: none;
+  border-radius: 0 0 0.45rem 0.45rem;
+}
+
 /* General content text (home/overview pages). */
 #intro,
 #overview {

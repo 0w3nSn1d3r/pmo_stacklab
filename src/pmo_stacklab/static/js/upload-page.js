@@ -3,13 +3,25 @@
  *
  * Collects the per-role FITS file inputs (lights/darks/bias/flats) into a
  * multipart form and POSTs them to `/api/upload`, which builds the session's
- * initial ImageData. Attaches an info tip to each frame-role input, with
- * role-specific placeholder copy, and shows the upload summary.
+ * initial ImageData. Attaches an info tip to each frame-role input, and shows the
+ * upload preview.
+ *
+ * Also drives the Quick Stack controls: "Quick Stack" applies the saved recipe to
+ * the uploaded frames in one shot and previews the final result; the settings menu
+ * offers "Configure" (a link into the per-process config walkthrough) and "Reset
+ * to Default".
  */
-import { uploadFrames } from "./api.js";
+import {
+  resetQuickStackConfig,
+  runQuickStack,
+  uploadFrames,
+} from "./api.js";
 import { buildNav } from "./nav.js";
 import { createInfoTip } from "./info-tip.js";
 import { showPreview } from "./preview-panel.js";
+
+// The last process in the pipeline -- Quick Stack's final output to preview.
+const FINAL_STEP = "Post-Process";
 
 async function init() {
   buildNav();
@@ -48,6 +60,54 @@ async function init() {
       uploadBtn.disabled = false;
     }
   });
+
+  // -- Quick Stack: upload (if needed) then run the whole saved recipe at once.
+  const quickStackBtn = /** @type {HTMLButtonElement|null} */ (
+    document.querySelector("#quick-stack")
+  );
+  if (quickStackBtn) {
+    quickStackBtn.addEventListener("click", async () => {
+      quickStackBtn.disabled = true;
+      uploadBtn.disabled = true;
+      setResult(resultEl, "Uploading frames...");
+      try {
+        // Upload the selected frames first, so Quick Stack always runs on the
+        // current selection without a separate Upload click.
+        if (form.querySelector('input[type="file"][name="lights"]').files.length) {
+          await uploadFrames(new FormData(form));
+        }
+        setResult(resultEl, "Running Quick Stack...");
+        await runQuickStack();
+        setResult(resultEl, "");
+        // Quick Stack's output is the post-processed (display-ready) final image,
+        // so it is shown as-is and blinks against the prior step.
+        if (previewEl) {
+          await showPreview(previewEl, FINAL_STEP, {
+            displayControls: false,
+            beforeStep: "Stack",
+          });
+        }
+      } catch (err) {
+        setResult(resultEl, `Error: ${err.message}`);
+      } finally {
+        quickStackBtn.disabled = false;
+        uploadBtn.disabled = false;
+      }
+    });
+  }
+
+  // -- "Reset to Default" in the settings menu.
+  const resetBtn = document.querySelector("#qs-reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", async () => {
+      try {
+        await resetQuickStackConfig();
+        setResult(resultEl, "Quick Stack settings reset to default.");
+      } catch (err) {
+        setResult(resultEl, `Error: ${err.message}`);
+      }
+    });
+  }
 }
 
 /**

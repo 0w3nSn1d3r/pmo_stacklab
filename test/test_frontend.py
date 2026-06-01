@@ -47,6 +47,13 @@ class ProcessPageWiringTests(unittest.TestCase):
         self.assertIn("js/color-page.js", color)
         self.assertIn('id="navbar"', color)
 
+        # Upload page exposes the Quick Stack button and its settings menu.
+        upload_html = self.client.get("/upload").get_data(as_text=True)
+        self.assertIn('id="quick-stack"', upload_html)
+        self.assertIn('id="qs-configure"', upload_html)
+        self.assertIn('id="qs-reset"', upload_html)
+        self.assertIn("quickstack=1", upload_html)  # Configure enters config mode
+
 
 class StaticAssetTests(unittest.TestCase):
     def setUp(self) -> None:
