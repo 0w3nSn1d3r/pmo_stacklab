@@ -26,7 +26,7 @@ from collections.abc import Callable, Sequence
 import numpy as np
 from astropy.nddata import CCDData
 
-from ..core import ImageData, Process
+from ..core import ImageData, PipelineError, Process
 
 #: A Stack operator acts on a frame cube stacked along axis 0. Rejection
 #: operators return a (masked) cube of the same shape; the coaddition operator
@@ -40,7 +40,16 @@ def _stack_to_cube(frames: Sequence[CCDData]) -> np.ma.MaskedArray:
     Per-frame masks set by earlier steps are carried into the cube so that
     rejection and coaddition ignore already-masked pixels.
     """
-    data = np.stack([np.asarray(frame.data) for frame in frames])
+    planes = [np.asarray(frame.data) for frame in frames]
+    shapes = {plane.shape for plane in planes}
+    if len(shapes) > 1:
+        raise PipelineError(
+            "Cannot stack frames of different sizes "
+            f"({', '.join(str(s) for s in sorted(shapes))}). "
+            "Reproject the frames onto a common grid before stacking, or check "
+            "that all frames came from the same instrument."
+        )
+    data = np.stack(planes)
     masks = [
         frame.mask if frame.mask is not None
         else np.zeros(np.shape(frame.data), dtype=bool)

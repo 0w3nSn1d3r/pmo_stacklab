@@ -13,7 +13,7 @@ import numpy as np
 from astropy.nddata import CCDData
 from astropy.wcs import WCS
 
-from pmo_stacklab.modules.core import ImageData
+from pmo_stacklab.modules.core import ImageData, PipelineError
 from pmo_stacklab.modules.reprojection import (
     ALIGNMENT,
     REGISTRATION,
@@ -109,7 +109,7 @@ class RegistrationTests(unittest.TestCase):
 
     def test_wcs_registration_requires_wcs(self) -> None:
         img = ImageData.from_frames([_star_field((0, 0)), _star_field((5, -3))])
-        with self.assertRaises(ValueError):
+        with self.assertRaises(PipelineError):
             build_reproject(build_wcs(), build_warp("nearest")).run(img)
 
     def test_wcs_registration_aligns_with_wcs(self) -> None:

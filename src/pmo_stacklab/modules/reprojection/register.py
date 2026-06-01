@@ -32,7 +32,7 @@ from collections.abc import Callable, Mapping
 import numpy as np
 from skimage.registration import phase_cross_correlation
 
-from ..core import ImageData
+from ..core import ImageData, PipelineError
 
 # A per-output-coordinate inverse map: given an (N, 2) array of (col, row)=(x, y)
 # coordinates on the reference grid, return the corresponding (N, 2) coordinates
@@ -100,9 +100,10 @@ def build_astroalign(detection_sigma: float = 5.0) -> RegisterOp:
                     frame.data, reference.data, detection_sigma=detection_sigma
                 )
             except Exception as exc:
-                raise ValueError(
-                    f"astroalign could not register a frame (too few matched "
-                    f"stars?): {exc}"
+                raise PipelineError(
+                    "Star-matching registration could not align a frame -- it "
+                    "likely found too few matched stars. Try lowering the detection "
+                    "threshold, or use a different registration method."
                 ) from exc
             return transform.inverse
 
@@ -151,8 +152,10 @@ def build_wcs() -> RegisterOp:
     def register(data: ImageData) -> TransformMap:
         def make_map(index: int, frame: object, reference: object) -> InverseMap:
             if reference.wcs is None or frame.wcs is None:
-                raise ValueError(
-                    "WCS registration requires every frame to carry a WCS solution."
+                raise PipelineError(
+                    "WCS registration needs every frame to carry a WCS (astrometric) "
+                    "solution, but some do not. Use star-matching registration "
+                    "instead, or plate-solve the frames first."
                 )
             return _wcs_inverse(reference.wcs, frame.wcs)
 

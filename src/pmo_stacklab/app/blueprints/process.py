@@ -30,6 +30,7 @@ from ...modules.core import (
     CHANNELS,
     COLOR_COMBINE,
     ImageData,
+    PipelineError,
     ProcessSpec,
     RGBImage,
     combine_image_data,
@@ -181,7 +182,11 @@ def run():
 
     try:
         output = process.run(input_data)
-    except Exception as exc:  # surface pipeline failures as a clean 500
+    except PipelineError as exc:
+        # Expected, user-actionable failure (bad data/settings) -> 422 with a
+        # message the user can act on.
+        return jsonify({"error": str(exc)}), 422
+    except Exception as exc:  # genuinely unexpected -> 500
         return jsonify({"error": f"{spec.name} failed: {exc}"}), 500
 
     store.put(sid, spec.name, output)
@@ -259,7 +264,10 @@ def quickstack_run():
         for process in pipeline.processes:
             data = process.run(data)
             store.put(sid, process.name, data)
-    except Exception as exc:  # surface pipeline failures as a clean 500
+    except PipelineError as exc:
+        # Name the process that failed, then give the actionable message.
+        return jsonify({"error": f"{process.name}: {exc}"}), 422
+    except Exception as exc:  # genuinely unexpected -> 500
         return jsonify({"error": f"Quick Stack failed: {exc}"}), 500
 
     return jsonify(_summarise(pipeline.processes[-1].name, data))

@@ -10,6 +10,7 @@ does not drag in the heavy per-process science modules.
 """
 from .color import COLOR_COMBINE
 from .color_combine import combine_image_data
+from .errors import PipelineError
 from .image_data import ImageData
 from .loader import DEFAULT_UNIT, load_frame, load_frames, load_image_data
 from .metadata_policy import MetadataPolicy
@@ -26,6 +27,7 @@ __all__ = [
     "ImageData",
     "RGBImage",
     "CHANNELS",
+    "PipelineError",
     "MetadataPolicy",
     "DEFAULT_UNIT",
     "load_frame",
