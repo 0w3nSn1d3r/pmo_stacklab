@@ -15,6 +15,7 @@ from .loader import DEFAULT_UNIT, load_frame, load_frames, load_image_data
 from .metadata_policy import MetadataPolicy
 from .metrics import frame_metrics
 from .parameters import BoolParam, ChoiceParam, FloatParam, IntParam, Parameter
+from .pipeline import Pipeline, PipelineSpec
 from .preview import DEFAULT_MAX_SIDE, downsample, render_png
 from .process import Operator, Process, sequential
 from .process_spec import ProcessSpec
@@ -45,6 +46,8 @@ __all__ = [
     "Process",
     "sequential",
     "ProcessSpec",
+    "Pipeline",
+    "PipelineSpec",
     "Algorithm",
     "Subprocess",
 ]
