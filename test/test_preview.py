@@ -136,6 +136,66 @@ class PreviewRouteTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 400)
 
 
+class DownloadRouteTests(unittest.TestCase):
+    def setUp(self) -> None:
+        from astropy.wcs import WCS
+
+        self.app = build_app()
+        self.client = self.app.test_client()
+        with self.client.session_transaction() as sess:
+            sess["session_id"] = "dl-session"
+        w = WCS(naxis=2)
+        w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        w.wcs.crpix = [1, 1]
+        w.wcs.crval = [10, 20]
+        w.wcs.cdelt = [-1e-3, 1e-3]
+        frame = CCDData(
+            np.arange(64 * 64, dtype=float).reshape(64, 64),
+            unit="adu",
+            wcs=w,
+            meta={"FILTER": "R", "EXPTIME": 100},
+        )
+        img = ImageData.from_frames([frame])
+        self.app.extensions["pmo_store"].put("dl-session", UPLOAD_KEY, img)
+
+    def test_download_fits(self) -> None:
+        resp = self.client.get("/api/download/Upload/R.fits")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.mimetype, "application/fits")
+        self.assertIn("attachment", resp.headers["Content-Disposition"])
+        self.assertIn("StackLab_Upload_R.fits", resp.headers["Content-Disposition"])
+        body = resp.get_data()
+        self.assertEqual(body[:6], b"SIMPLE")  # valid FITS header
+        # The FITS round-trips the data and WCS.
+        from astropy.io import fits
+
+        hdul = fits.open(io.BytesIO(body))
+        self.assertEqual(hdul[0].data.shape, (64, 64))
+        self.assertEqual(hdul[0].header["FILTER"], "R")
+        self.assertIn("CRVAL1", hdul[0].header)  # WCS preserved
+
+    def test_download_png_full_res(self) -> None:
+        resp = self.client.get("/api/download/Upload/R.png")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.mimetype, "image/png")
+        self.assertIn("attachment", resp.headers["Content-Disposition"])
+        body = resp.get_data()
+        self.assertEqual(body[:8], b"\x89PNG\r\n\x1a\n")
+        # Full resolution: 64x64 (not downsampled), parsed from the PNG IHDR.
+        width = int.from_bytes(body[16:20], "big")
+        height = int.from_bytes(body[20:24], "big")
+        self.assertEqual((width, height), (64, 64))
+
+    def test_download_unknown_format_400(self) -> None:
+        self.assertEqual(self.client.get("/api/download/Upload/R.tiff").status_code, 400)
+
+    def test_download_unknown_filter_404(self) -> None:
+        self.assertEqual(self.client.get("/api/download/Upload/Z.fits").status_code, 404)
+
+    def test_download_unknown_step_404(self) -> None:
+        self.assertEqual(self.client.get("/api/download/Nope/R.fits").status_code, 404)
+
+
 class ZoomRegionTests(unittest.TestCase):
     def test_centres_and_clamps(self) -> None:
         from pmo_stacklab.app.blueprints.process import _zoom_region, _ZOOM_FRACTION

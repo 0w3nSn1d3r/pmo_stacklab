@@ -167,6 +167,28 @@ export function colorImageUrl(params = {}) {
 }
 
 /**
+ * Build the download URL for a step/filter's full-resolution frame.
+ * @param {string} step - "Upload" or a process name.
+ * @param {string} filter - the filter to download.
+ * @param {"fits"|"png"} fmt - file format.
+ * @param {{stretch?: string, intensity?: number}} [params] - display stretch for
+ *   the PNG render (ignored for FITS, which is the verbatim linear data).
+ * @returns {string}
+ */
+export function downloadUrl(step, filter, fmt, params = {}) {
+  const query = new URLSearchParams();
+  if (fmt === "png") {
+    if (params.stretch) query.set("stretch", params.stretch);
+    if (params.intensity != null) query.set("intensity", String(params.intensity));
+  }
+  const qs = query.toString();
+  return (
+    `${API_ROOT}/download/${encodeURIComponent(step)}/` +
+    `${encodeURIComponent(filter)}.${fmt}${qs ? `?${qs}` : ""}`
+  );
+}
+
+/**
  * Build the URL for a step's preview PNG. Used directly as an <img> src (the
  * browser fetches it), so this returns a URL string rather than a promise.
  *

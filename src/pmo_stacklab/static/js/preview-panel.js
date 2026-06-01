@@ -22,7 +22,12 @@
  *
  * @typedef {import("./api.js").ProcessSchema} ProcessSchema
  */
-import { getMetrics, getPreviewFilters, previewImageUrl } from "./api.js";
+import {
+  downloadUrl,
+  getMetrics,
+  getPreviewFilters,
+  previewImageUrl,
+} from "./api.js";
 
 /** Display-stretch options offered for the linear steps. */
 const STRETCHES = ["asinh", "log", "sqrt", "linear"];
@@ -131,6 +136,26 @@ export async function showPreview(container, step, options = {}) {
   zoomOutBtn.hidden = true;
   blinkBar.append(zoomOutBtn);
 
+  // Unobtrusive download menu: a small disclosure offering the active view's
+  // full-resolution frame as FITS (verbatim linear data) or PNG (the displayed
+  // render at full resolution). Pushed to the right of the action bar.
+  const download = document.createElement("details");
+  download.className = "download-menu";
+  const summary = document.createElement("summary");
+  summary.textContent = "Download ▾";
+  const fitsLink = document.createElement("a");
+  fitsLink.textContent = "FITS (data)";
+  fitsLink.className = "download-option";
+  const pngLink = document.createElement("a");
+  pngLink.textContent = "PNG (image)";
+  pngLink.className = "download-option";
+  // `download` attr asks the browser to save rather than navigate; the server's
+  // Content-Disposition supplies the actual filename.
+  fitsLink.setAttribute("download", "");
+  pngLink.setAttribute("download", "");
+  download.append(summary, fitsLink, pngLink);
+  blinkBar.append(download);
+
   const metricsTable = document.createElement("table");
   metricsTable.className = "metrics-table";
 
@@ -157,6 +182,15 @@ export async function showPreview(container, step, options = {}) {
   // Re-request every view's image with the shared (matched) display params and the
   // shared zoom, so the blink only ever differs by the processing -- never by the
   // display transform or the region viewed.
+  // Point the download links at the ACTIVE view's step + current filter, with the
+  // display params for the PNG render, so a download always matches what is shown.
+  const updateDownloadLinks = () => {
+    const view = views[activeIndex];
+    const params = displayParams();
+    fitsLink.href = downloadUrl(view.step, filterSelect.value, "fits");
+    pngLink.href = downloadUrl(view.step, filterSelect.value, "png", params);
+  };
+
   const refreshImages = () => {
     const params = displayParams();
     if (zoom) {
@@ -171,6 +205,7 @@ export async function showPreview(container, step, options = {}) {
     });
     zoomOutBtn.hidden = !zoom;
     stack.classList.toggle("zoomable", !zoom);
+    updateDownloadLinks();
   };
 
   // Clicking an image zooms into a tile centred on the click (in fractional image
@@ -198,6 +233,7 @@ export async function showPreview(container, step, options = {}) {
     const view = views[activeIndex];
     renderMetrics(metricsTable, (metricsByStep[view.step] || {})[filterSelect.value]);
     if (views.length > 1) activeLabel.textContent = view.label;
+    updateDownloadLinks();
   };
 
   filterSelect.addEventListener("change", () => {

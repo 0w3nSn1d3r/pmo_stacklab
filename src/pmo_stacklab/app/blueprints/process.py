@@ -235,6 +235,65 @@ def preview_image(step: str, filter_name: str):
     return Response(png, mimetype="image/png", headers={"Cache-Control": "no-store"})
 
 
+# Effectively unbounded preview cap, used to render a download PNG at native
+# (full) resolution rather than the on-screen preview size.
+_FULL_RES = 1_000_000
+
+
+@process_bp.get("/download/<step>/<filter_name>.<fmt>")
+def download(step: str, filter_name: str, fmt: str):
+    """Download one filter's full-resolution frame at ``step`` as FITS or PNG.
+
+    * ``fits`` -- the stored frame written verbatim (linear data, full WCS/header,
+      mask, uncertainty); the format for further scientific work.
+    * ``png`` -- the frame rendered at FULL resolution with the same display
+      stretch as the preview (``stretch``/``intensity`` query params), so the saved
+      picture matches what the user sees, just un-downsampled.
+
+    The file downloads with a descriptive name like ``StackLab_Stack_R.fits``.
+    """
+    data = _step_data(step)
+    if data is None or filter_name not in data.lights:
+        return jsonify({"error": f"no data for {step!r} / {filter_name!r}"}), 404
+
+    frame = data.lights[filter_name][0]
+    safe_step = "".join(c if c.isalnum() else "_" for c in step)
+    filename = f"StackLab_{safe_step}_{filter_name}.{fmt}"
+
+    if fmt == "fits":
+        buffer = io.BytesIO()
+        frame.to_hdu().writeto(buffer)
+        return _download_response(buffer.getvalue(), "application/fits", filename)
+
+    if fmt == "png":
+        stretch = request.args.get("stretch", "asinh")
+        try:
+            intensity = float(request.args.get("intensity", 0.5))
+        except ValueError:
+            return jsonify({"error": "intensity must be a number"}), 400
+        try:
+            png = render_png(
+                frame, stretch=stretch, intensity=intensity, max_side=_FULL_RES
+            )
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        return _download_response(png, "image/png", filename)
+
+    return jsonify({"error": f"unsupported format {fmt!r}; use fits or png"}), 400
+
+
+def _download_response(payload: bytes, mimetype: str, filename: str) -> Response:
+    """A Response that prompts a file download (Content-Disposition: attachment)."""
+    return Response(
+        payload,
+        mimetype=mimetype,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )
+
+
 #: Zoom tile size as a fraction of each dimension (a quarter-by-quarter region).
 _ZOOM_FRACTION = 0.25
 

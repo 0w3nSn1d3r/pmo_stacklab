@@ -422,6 +422,71 @@ input:focus-visible {
   font-weight: 600;
 }
 
+/* Download menu: an unobtrusive disclosure pushed to the end of the action bar. */
+.download-menu {
+  margin-left: auto;
+  position: relative;
+}
+
+.download-menu > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.4rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 550;
+  color: var(--green);
+  border: 1px solid var(--border);
+  border-radius: 0.45rem;
+  background: var(--surface);
+  user-select: none;
+}
+
+.download-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.download-menu > summary:hover {
+  background: var(--surface-2);
+}
+
+.download-menu[open] > summary {
+  outline: 2px solid var(--gold-line);
+  outline-offset: 1px;
+}
+
+/* The two options drop into a small card below the summary. */
+.download-menu[open] {
+  z-index: 10;
+}
+
+.download-option {
+  display: block;
+  position: absolute;
+  right: 0;
+  min-width: 9rem;
+  padding: 0.45rem 0.8rem;
+  color: var(--green);
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.download-option:hover {
+  background: var(--surface-2);
+}
+
+.download-option:first-of-type {
+  top: calc(100% + 0.3rem);
+  border-radius: 0.45rem 0.45rem 0 0;
+}
+
+.download-option:last-of-type {
+  top: calc(100% + 0.3rem + 2.15rem);
+  border-top: none;
+  border-radius: 0 0 0.45rem 0.45rem;
+}
+
 .metrics-table {
   border-collapse: collapse;
   font-size: 0.85rem;
