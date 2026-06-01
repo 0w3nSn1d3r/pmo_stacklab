@@ -80,6 +80,34 @@ def _too_large(_error):
     )
 
 
+def _wants_json() -> bool:
+    """True if the request targets the API, so errors should be JSON not HTML."""
+    return request.path.startswith("/api/")
+
+
+@process_bp.app_errorhandler(404)
+def _not_found(error):
+    """Return a JSON 404 for API routes (HTML elsewhere, e.g. unknown pages)."""
+    if not _wants_json():
+        return error
+    return jsonify({"error": f"no such endpoint: {request.path}"}), 404
+
+
+@process_bp.app_errorhandler(500)
+def _server_error(_error):
+    """Last-resort JSON 500 for API routes, so an unexpected fault never reaches the
+    client as an HTML page. Real bugs still log a full traceback server-side."""
+    if not _wants_json():
+        return _error
+    return (
+        jsonify(
+            {"error": "an unexpected server error occurred; please try again or "
+                      "report this if it persists."}
+        ),
+        500,
+    )
+
+
 @process_bp.post("/upload")
 def upload():
     """Load uploaded FITS frames into the session's initial ImageData.
