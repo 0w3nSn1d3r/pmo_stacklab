@@ -1,2 +1,15 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalize line endings: text files are stored with LF in the repository.
+# Pinning eol=lf settles the LF/CRLF warnings on Windows checkouts and keeps the
+# repo consistent across machines.
+* text=auto eol=lf
+
+# Explicitly mark binary types so Git never applies text/EOL conversion to them
+# (FITS frames and rendered images must round-trip byte-for-byte).
+*.fits binary
+*.fit  binary
+*.fts  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
