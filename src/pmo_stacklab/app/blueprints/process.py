@@ -39,6 +39,8 @@ from ...modules.core import (
     render_png,
 )
 from PIL import Image
+from astropy.io import fits
+import numpy as np
 import io
 
 process_bp = Blueprint("process", __name__)
@@ -599,7 +601,7 @@ def color_combine():
 
 @process_bp.get("/color.png")
 def color_image():
-    """Serve the most recently combined RGB image as a PNG."""
+    """Serve the most recently combined RGB image as a PNG (for on-screen preview)."""
     rgb = _store().get(session_id(), COLOR_KEY)
     if not isinstance(rgb, RGBImage):
         return jsonify({"error": "no colour image; combine first"}), 404
@@ -608,3 +610,37 @@ def color_image():
     return Response(
         buffer.getvalue(), mimetype="image/png", headers={"Cache-Control": "no-store"}
     )
+
+
+@process_bp.get("/color/download.<fmt>")
+def color_download(fmt: str):
+    """Download the combined colour image as PNG or FITS.
+
+    * ``png`` -- the 8-bit RGB image as shown (the display-ready result).
+    * ``fits`` -- a 3-plane ``(3, H, W)`` cube (R, G, B), the convention for a
+      colour FITS, with each channel's source filter recorded in the header
+      (``CHANR``/``CHANG``/``CHANB``).
+
+    Downloads with a descriptive name (``StackLab_color.png`` / ``.fits``).
+    """
+    rgb = _store().get(session_id(), COLOR_KEY)
+    if not isinstance(rgb, RGBImage):
+        return jsonify({"error": "no colour image; combine first"}), 404
+
+    filename = f"StackLab_color.{fmt}"
+    if fmt == "png":
+        buffer = io.BytesIO()
+        Image.fromarray(rgb.data, mode="RGB").save(buffer, format="PNG")
+        return _download_response(buffer.getvalue(), "image/png", filename)
+
+    if fmt == "fits":
+        # (H, W, 3) display image -> (3, H, W) channel cube, the colour-FITS layout.
+        cube = np.moveaxis(rgb.data, 2, 0)
+        hdu = fits.PrimaryHDU(cube)
+        for channel, key in (("red", "CHANR"), ("green", "CHANG"), ("blue", "CHANB")):
+            hdu.header[key] = (rgb.mapping.get(channel) or "", f"{channel} channel filter")
+        buffer = io.BytesIO()
+        hdu.writeto(buffer)
+        return _download_response(buffer.getvalue(), "application/fits", filename)
+
+    return jsonify({"error": f"unsupported format {fmt!r}; use fits or png"}), 400

@@ -10,7 +10,12 @@
  *
  * Unmapped channels are left black, so partial (e.g. two-channel) combines work.
  */
-import { combineColor, colorImageUrl, getColorSchema } from "./api.js";
+import {
+  colorDownloadUrl,
+  colorImageUrl,
+  combineColor,
+  getColorSchema,
+} from "./api.js";
 import { buildNav } from "./nav.js";
 import { createInfoTip } from "./info-tip.js";
 import "./config-menu.js"; // registers <config-menu>
@@ -21,10 +26,17 @@ async function init() {
   const config = document.querySelector("#color-config");
   const resultEl = document.querySelector("#result");
   const image = /** @type {HTMLImageElement} */ (document.querySelector("#color-image"));
+  const downloadMenu = document.querySelector("#color-download");
   const combineBtn = /** @type {HTMLButtonElement|null} */ (
     document.querySelector("#combine")
   );
   if (!config || !combineBtn) return;
+
+  // Point the download links at the combined image; revealed after a combine.
+  const pngLink = document.querySelector("#color-dl-png");
+  const fitsLink = document.querySelector("#color-dl-fits");
+  if (pngLink) pngLink.href = colorDownloadUrl("png");
+  if (fitsLink) fitsLink.href = colorDownloadUrl("fits");
 
   let schema;
   try {
@@ -93,6 +105,7 @@ async function init() {
       setResult(resultEl, "");
       image.src = colorImageUrl({ t: Date.now() });
       image.hidden = false;
+      if (downloadMenu) downloadMenu.hidden = false;
     } catch (err) {
       setResult(resultEl, `Error: ${err.message}`);
     } finally {

@@ -46,6 +46,7 @@ class ProcessPageWiringTests(unittest.TestCase):
         color = self.client.get("/color").get_data(as_text=True)
         self.assertIn("js/color-page.js", color)
         self.assertIn('id="navbar"', color)
+        self.assertIn('id="color-download"', color)  # download menu present
 
         # Upload page exposes the Quick Stack button and its settings menu.
         upload_html = self.client.get("/upload").get_data(as_text=True)

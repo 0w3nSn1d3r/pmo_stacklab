@@ -134,6 +134,42 @@ class ColorRouteTests(unittest.TestCase):
             sess["session_id"] = "empty-color-session"
         self.assertEqual(self.client.get("/api/color").status_code, 409)
 
+    def _combine(self) -> None:
+        self.client.post(
+            "/api/color",
+            json={"algorithm": "linear", "mapping": {"red": "R", "green": "G", "blue": "B"}},
+        )
+
+    def test_download_png(self) -> None:
+        self._combine()
+        resp = self.client.get("/api/color/download.png")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.mimetype, "image/png")
+        self.assertIn("attachment", resp.headers["Content-Disposition"])
+        self.assertIn("StackLab_color.png", resp.headers["Content-Disposition"])
+        self.assertEqual(resp.get_data()[:8], b"\x89PNG\r\n\x1a\n")
+
+    def test_download_fits_is_three_plane_cube_with_mapping(self) -> None:
+        import io as _io
+        from astropy.io import fits
+
+        self._combine()
+        resp = self.client.get("/api/color/download.fits")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.mimetype, "application/fits")
+        self.assertIn("StackLab_color.fits", resp.headers["Content-Disposition"])
+        hdul = fits.open(_io.BytesIO(resp.get_data()))
+        self.assertEqual(hdul[0].data.shape[0], 3)  # (3, H, W) channel cube
+        self.assertEqual(hdul[0].header["CHANR"], "R")  # mapping recorded
+        self.assertEqual(hdul[0].header["CHANB"], "B")
+
+    def test_download_before_combine_404(self) -> None:
+        self.assertEqual(self.client.get("/api/color/download.png").status_code, 404)
+
+    def test_download_unknown_format_400(self) -> None:
+        self._combine()
+        self.assertEqual(self.client.get("/api/color/download.tiff").status_code, 400)
+
 
 if __name__ == "__main__":
     unittest.main()

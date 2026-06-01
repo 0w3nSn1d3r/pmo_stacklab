@@ -167,6 +167,15 @@ export function colorImageUrl(params = {}) {
 }
 
 /**
+ * Build the download URL for the combined colour image.
+ * @param {"png"|"fits"} fmt - PNG (display image) or FITS (3-plane channel cube).
+ * @returns {string}
+ */
+export function colorDownloadUrl(fmt) {
+  return `${API_ROOT}/color/download.${fmt}`;
+}
+
+/**
  * Fetch the saved Quick Stack recipe and the whole-pipeline schema.
  * @returns {Promise<{recipe: Object, schema: {processes: ProcessSchema[]}}>}
  */

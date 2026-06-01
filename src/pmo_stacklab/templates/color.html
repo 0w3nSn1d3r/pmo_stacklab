@@ -19,6 +19,14 @@
         <div class="preview">
             <h2>Color Image</h2>
             <div id="color-preview" class="preview-pane">
+                <!-- Download menu appears once an image has been combined. -->
+                <div class="blink-bar">
+                    <details id="color-download" class="download-menu" hidden>
+                        <summary>Download &#9662;</summary>
+                        <a id="color-dl-png" class="download-option" download href="#">PNG (image)</a>
+                        <a id="color-dl-fits" class="download-option" download href="#">FITS (3-plane)</a>
+                    </details>
+                </div>
                 <img id="color-image" class="preview-image active" alt="Color image" hidden>
             </div>
             <pre id="result" class="result"></pre>
