@@ -24,3 +24,10 @@ pmo-stacklab = "pmo_stacklab.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# Bundle the Jinja templates and static assets (CSS/JS) into every install.
+# They live beside the package rather than inside a Python subpackage, so
+# without this a non-editable install (wheel / `pip install .`) omits them and
+# Flask raises "template not found" at runtime.
+[tool.setuptools.package-data]
+pmo_stacklab = ["templates/*.html", "static/css/*.css", "static/js/*.js"]
