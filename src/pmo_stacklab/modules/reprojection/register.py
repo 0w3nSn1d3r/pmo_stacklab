@@ -21,9 +21,15 @@ libraries and exposes their trade-offs:
   "correct" when a WCS exists, but raw frames often lack one.
 
 Every algorithm yields the same uniform per-frame inverse-map callable, so the
-align subprocess can apply them all identically. The reference is the first frame
-of each filter (registration is per filter, matching per-filter stacking;
-cross-filter alignment for colour is a future concern).
+align subprocess can apply them all identically.
+
+Registration is global, not per filter: every light frame is mapped onto ONE
+reference (see :func:`reference_frame`), so all filters land on a common pixel
+grid. Registering each filter to its own reference would stack each filter
+correctly but leave the filters offset from one another, which shows up as colour
+fringing the moment they are combined -- the frames of a dithered LRGB set are
+typically several pixels apart. A single grid also guarantees the equal shapes
+colour combination requires.
 """
 from __future__ import annotations
 
@@ -41,9 +47,10 @@ from ..core import ImageData, PipelineError
 # satisfy it directly.
 InverseMap = Callable[[np.ndarray], np.ndarray]
 
-# Per-filter registration result: filter -> one inverse map per frame, in frame
-# order. Passed from the register operator to the align operator by the Reproject
-# coordinator.
+# Registration result, keyed by filter for the coordinator's convenience: filter
+# -> one inverse map per frame, in frame order. The maps all target the same
+# global reference grid. Passed from the register operator to the align operator
+# by the Reproject coordinator.
 TransformMap = Mapping[str, tuple[InverseMap, ...]]
 
 # A register operator: reads the working data and returns the transforms to apply.
@@ -55,20 +62,37 @@ def _identity(coords: np.ndarray) -> np.ndarray:
     return coords
 
 
-def _per_filter(
+def reference_frame(data: ImageData) -> object:
+    """Return the single frame every other frame is registered onto.
+
+    The first frame of the first filter -- i.e. the first light frame uploaded,
+    since :class:`~pmo_stacklab.modules.core.image_data.ImageData` preserves
+    filter and frame order. Any consistent choice works; picking the first makes
+    the resulting grid predictable and keeps a single-filter run behaving exactly
+    as it did when registration was per filter.
+    """
+    return next(iter(data.lights.values()))[0]
+
+
+def _all_frames(
     data: ImageData, make_map: Callable[[int, object, object], InverseMap]
 ) -> TransformMap:
     """Build a TransformMap by calling ``make_map(index, frame, reference)`` per frame.
 
-    The reference is frame 0 of each filter and always receives the identity map;
-    other frames receive whatever ``make_map`` computes.
+    Every frame of every filter is mapped onto the one global
+    :func:`reference_frame`, which itself receives the identity map. ``index`` is
+    the frame's position within its filter, passed through for error reporting.
     """
+    reference = reference_frame(data)
     transforms: dict[str, tuple[InverseMap, ...]] = {}
     for filt, frames in data.lights.items():
-        reference = frames[0]
         maps: list[InverseMap] = []
         for index, frame in enumerate(frames):
-            maps.append(_identity if index == 0 else make_map(index, frame, reference))
+            # Identity by identity, not by position: the reference frame is one
+            # specific frame, which lives at index 0 of only one filter.
+            maps.append(
+                _identity if frame is reference else make_map(index, frame, reference)
+            )
         transforms[filt] = tuple(maps)
     return transforms
 
@@ -107,7 +131,7 @@ def build_astroalign(detection_sigma: float = 5.0) -> RegisterOp:
                 ) from exc
             return transform.inverse
 
-        return _per_filter(data, make_map)
+        return _all_frames(data, make_map)
 
     return register
 
@@ -141,7 +165,7 @@ def build_phase_correlation(upsample_factor: int = 1) -> RegisterOp:
 
             return inverse_map
 
-        return _per_filter(data, make_map)
+        return _all_frames(data, make_map)
 
     return register
 
@@ -159,7 +183,7 @@ def build_wcs() -> RegisterOp:
                 )
             return _wcs_inverse(reference.wcs, frame.wcs)
 
-        return _per_filter(data, make_map)
+        return _all_frames(data, make_map)
 
     return register
 

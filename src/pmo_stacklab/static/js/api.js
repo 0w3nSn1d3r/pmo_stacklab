@@ -37,6 +37,8 @@
  * @property {string} name
  * @property {string} label
  * @property {string} description
+ * @property {string} default - name of the algorithm to preselect. Not
+ *   necessarily `algorithms[0]`: the list may open with an instructive baseline.
  * @property {AlgorithmSchema[]} algorithms
  */
 
@@ -142,17 +144,36 @@ export function getColorSchema() {
 }
 
 /**
- * Combine the mapped per-filter frames into an RGB image (stored server-side).
- * @param {string} algorithm - combine algorithm name.
+ * Combine the coloured per-filter frames into an RGB image (stored server-side).
+ * @param {string} algorithm - tone-map algorithm name.
  * @param {Object<string, number>} params - the algorithm's parameter values.
- * @param {Object<string, string|null>} mapping - channel -> filter (or null).
- * @returns {Promise<{shape: number[], mapping: Object<string, string|null>}>}
+ * @param {Object<string, string>} colors - filter -> "#rrggbb". Any number of
+ *   filters may contribute; omitted filters are left out of the combine.
+ * @param {Object} [options] - the rest of the assignment.
+ * @param {Object<string, number>} [options.gains] - filter -> signal multiplier
+ *   (the colour-balance control); 1 leaves a filter unchanged.
+ * @param {{algorithm: string, params: Object<string, number>}}
+ *   [options.normalization] - how each filter is put on the common scale, which
+ *   is what decides whether the combined background is neutral.
+ * @param {{filter: string, algorithm: string, params: Object<string, number>}}
+ *   [options.luminance] - the filter whose lightness to transplant, and how;
+ *   omit for no luminance.
+ * @returns {Promise<{shape: number[], colors: Object<string, string>,
+ *   gains: Object<string, number>, luminance: string|null}>}
  */
-export function combineColor(algorithm, params, mapping) {
+export function combineColor(algorithm, params, colors, options = {}) {
+  const { gains, normalization, luminance } = options;
   return requestJSON(`${API_ROOT}/color`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ algorithm, params, mapping }),
+    body: JSON.stringify({
+      algorithm,
+      params,
+      colors,
+      gains,
+      normalization,
+      luminance,
+    }),
   });
 }
 

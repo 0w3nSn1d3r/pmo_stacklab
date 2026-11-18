@@ -97,9 +97,11 @@ The navigation bar follows the pipeline left to right. A typical session:
      see exactly what the step changed;
    - **click-to-zoom** into the full-resolution image;
    - a **Download** menu (full-resolution FITS or PNG).
-3. **Color** — map your per-filter stacked frames onto the red/green/blue
-   channels and combine them into one colour image (downloadable as PNG, or as a
-   3-plane FITS cube).
+3. **Color** — give each stacked filter a color and combine them into one image
+   (downloadable as PNG, or as a 3-plane FITS cube). Any number of filters can
+   contribute, so narrowband palettes work directly — assign OIII a single teal
+   rather than smuggling it into two channels — and one filter may additionally
+   be nominated as the **luminance**, lending its lightness to the result (LRGB).
 
 ## The pipeline
 
@@ -150,7 +152,7 @@ A three-tier, data-driven design (see `src/pmo_stacklab/modules/core/`):
   WCS/header until the N→1 collapse at Stack.
 - **`Pipeline` / `PipelineSpec`** — `Process` one level up: runs all processes in
   sequence (powers Quick Stack).
-- **`RGBImage`** — the terminal colour result (kept separate so `ImageData`'s
+- **`RGBImage`** — the terminal color result (kept separate so `ImageData`'s
   per-filter-grayscale invariant stays intact).
 
 A single generalized endpoint (`POST /api/run`) drives *any* process by acting
@@ -178,8 +180,8 @@ Errors are always `{"error": "..."}`; user-input faults give an actionable 4xx.
 | `PUT /quickstack` | Validate and save a recipe. |
 | `POST /quickstack/reset` | Reset the recipe to default. |
 | `POST /quickstack/run` | Run the whole saved pipeline on the uploaded frames. |
-| `GET /color` | Colour-combine schema + filters + default channel mapping. |
-| `POST /color` | Combine mapped filters into an RGB image: body `{algorithm, params, mapping}`. |
+| `GET /color` | color-combine schema + filters + default filter→color assignment. |
+| `POST /color` | Combine the colored filters into an RGB image: body `{algorithm, params, colors, luminance}`, where `colors` is `{filter: "#rrggbb"}` and `luminance` is the optional `{filter, algorithm, params}`. |
 | `GET /color.png` | The combined image (preview source). |
 | `GET /color/download.<fmt>` | Download the combined image (`png` or 3-plane `fits`). |
 

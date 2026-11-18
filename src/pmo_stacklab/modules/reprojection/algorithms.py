@@ -29,6 +29,7 @@ from .reproject import reproject_coordinator
 REGISTRATION = Subprocess(
     name="registration",
     label="Registration",
+    default="astroalign",
     description=(
         "Estimate how each frame maps onto the reference frame, without yet moving "
         "any pixels. Compare the methods: more capable ones correct rotation and "
@@ -53,8 +54,8 @@ REGISTRATION = Subprocess(
                 FloatParam(
                     name="detection_sigma",
                     default=5.0,
-                    minimum=1.0,
-                    maximum=20.0,
+                    minimum=2.0,
+                    maximum=10.0,
                     step=0.5,
                     description="Star-detection threshold in background sigmas.",
                 ),
@@ -72,9 +73,9 @@ REGISTRATION = Subprocess(
             parameters=(
                 IntParam(
                     name="upsample_factor",
-                    default=1,
+                    default=10,
                     minimum=1,
-                    maximum=100,
+                    maximum=20,
                     description="Sub-pixel refinement: shifts resolved to 1/this px.",
                 ),
             ),
@@ -94,6 +95,7 @@ REGISTRATION = Subprocess(
 ALIGNMENT = Subprocess(
     name="alignment",
     label="Alignment",
+    default="bilinear",
     description=(
         "Resample each frame onto the reference grid using the registration "
         "mapping. The interpolation kernel trades sharpness against ringing."

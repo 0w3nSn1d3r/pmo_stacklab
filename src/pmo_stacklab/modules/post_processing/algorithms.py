@@ -17,6 +17,7 @@ from . import background_modeling, intensity_scaling, stretch
 BACKGROUND = Subprocess(
     name="background",
     label="Background Modeling",
+    default="sep_2d",
     description=(
         "Estimate and subtract the sky background so light-pollution gradients and "
         "vignetting do not dominate the stretched image."
@@ -49,8 +50,8 @@ BACKGROUND = Subprocess(
                 IntParam(
                     name="box_size",
                     default=64,
-                    minimum=8,
-                    maximum=256,
+                    minimum=16,
+                    maximum=512,
                     description="Mesh box size (px) for the background estimate.",
                 ),
             ),
@@ -61,6 +62,7 @@ BACKGROUND = Subprocess(
 INTENSITY_SCALING = Subprocess(
     name="intensity_scaling",
     label="Intensity Scaling",
+    default="zscale",
     description=(
         "Pick the black and white points and normalize to [0, 1]. This sets how "
         "aggressively shadows and highlights are clipped before the stretch."
@@ -77,9 +79,9 @@ INTENSITY_SCALING = Subprocess(
             parameters=(
                 FloatParam(
                     name="percentile",
-                    default=99.0,
-                    minimum=50.0,
-                    maximum=100.0,
+                    default=99.5,
+                    minimum=95.0,
+                    maximum=99.99,
                     step=0.1,
                     description="Central percentage of pixels to keep.",
                 ),
@@ -116,6 +118,7 @@ INTENSITY_SCALING = Subprocess(
 STRETCH = Subprocess(
     name="stretch",
     label="Stretch",
+    default="asinh",
     description=(
         "Apply a non-linear transfer function that boosts faint signal relative to "
         "bright stars -- the step that reveals nebulosity. Compare the curves."
@@ -132,7 +135,7 @@ STRETCH = Subprocess(
             parameters=(
                 FloatParam(
                     name="a",
-                    default=0.1,
+                    default=0.5,
                     minimum=0.01,
                     maximum=1.0,
                     step=0.01,

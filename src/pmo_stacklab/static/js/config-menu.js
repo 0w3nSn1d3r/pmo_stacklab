@@ -302,9 +302,13 @@ class ConfigMenu extends HTMLElement {
     });
     this.appendChild(fieldset);
 
-    // Default to the first algorithm and keep parameter visibility in sync as
-    // the selection changes.
-    if (this.#options.length) this.#options[0].checked = true;
+    // Preselect the schema's recommended algorithm -- NOT simply the first.
+    // Several subprocesses list an instructive baseline ("none") first on
+    // purpose, so display order and the sensible default are separate things.
+    const preferred =
+      this.#options.find((option) => option.algorithmName === schema.default) ||
+      this.#options[0];
+    if (preferred) preferred.checked = true;
     fieldset.addEventListener("change", () => {
       for (const option of this.#options) option.updateState();
     });

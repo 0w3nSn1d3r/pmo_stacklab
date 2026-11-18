@@ -20,6 +20,9 @@ alone.
 """
 from __future__ import annotations
 
+import colorsys
+from typing import IO
+
 from flask import Blueprint, Response, current_app, jsonify, request
 
 from ..config import ORDER, PIPELINE
@@ -27,8 +30,9 @@ from ..store import SessionStore
 from ..utils import session_id
 from .. import quickstack
 from ...modules.core import (
-    CHANNELS,
     COLOR_COMBINE,
+    LUMINANCE_APPLY,
+    NORMALIZATION,
     ImageData,
     PipelineError,
     ProcessSpec,
@@ -124,6 +128,21 @@ def _server_error(_error):
     )
 
 
+def _uploaded_streams(field: str) -> list[IO[bytes]]:
+    """Return the readable streams uploaded under one frame-role ``field``.
+
+    Parts the user did not actually fill in are skipped. A browser serialises an
+    ``<input type="file">`` with nothing selected as a real multipart part with an
+    empty filename and a zero-byte body, so ``request.files.getlist`` yields one
+    such placeholder for *every* untouched role. Feeding those to the loader made
+    astropy report "Empty or corrupt FITS file", which read as though the user's
+    own (perfectly good) frames were damaged -- so a lights-only upload from the
+    upload form failed with a misleading error. An empty filename is the browser's
+    marker for "nothing selected"; a genuinely selected file always has one.
+    """
+    return [f.stream for f in request.files.getlist(field) if f.filename]
+
+
 @process_bp.post("/upload")
 def upload():
     """Load uploaded FITS frames into the session's initial ImageData.
@@ -133,10 +152,7 @@ def upload():
     files. At least one light frame is required. The resulting ImageData is stored
     under :data:`UPLOAD_KEY` as the input to the first pipeline process.
     """
-    streams = {
-        field: [f.stream for f in request.files.getlist(field)]
-        for field in FRAME_FIELDS
-    }
+    streams = {field: _uploaded_streams(field) for field in FRAME_FIELDS}
     if not streams["lights"]:
         return jsonify({"error": "at least one light frame is required"}), 400
 
@@ -513,12 +529,23 @@ def metrics(step: str):
 #: Store key for the combined RGB image.
 COLOR_KEY = "__color__"
 
-#: Default filter-name -> channel guesses, so common setups pre-fill the mapping.
-_CHANNEL_GUESS = {
-    "red": ("R", "RED", "HA", "HALPHA", "SII", "S2"),
-    "green": ("G", "GREEN", "V", "OIII", "O3"),
-    "blue": ("B", "BLUE", "OIII", "O3", "HB"),
+#: Conventional colour for well-known filter names, so a familiar set pre-fills
+#: sensibly. Broadband filters get the primary they represent; narrowband lines
+#: get the colour that line actually emits (Ha deep red, OIII teal, SII a redder
+#: red), which is what makes the usual Hubble/HOO palettes fall out naturally.
+_COLOR_GUESS = {
+    "R": "#ff0000", "RED": "#ff0000",
+    "G": "#00ff00", "GREEN": "#00ff00", "V": "#00ff00",
+    "B": "#0000ff", "BLUE": "#0000ff",
+    "HA": "#ff2000", "HALPHA": "#ff2000", "H-ALPHA": "#ff2000",
+    "OIII": "#00ffc0", "O3": "#00ffc0",
+    "SII": "#ff0040", "S2": "#ff0040",
+    "HB": "#3060ff",
+    "I": "#c00000", "U": "#8000ff", "Z": "#a00000", "Y": "#e00000",
 }
+
+#: Filter names conventionally used for an unfiltered/clear (luminance) frame.
+_LUMINANCE_NAMES = ("L", "LUM", "LUMINANCE", "CLEAR")
 
 
 def _latest_stacked() -> tuple[str | None, ImageData | None]:
@@ -540,45 +567,81 @@ def _latest_stacked() -> tuple[str | None, ImageData | None]:
     return None, None
 
 
-def _default_mapping(filters: list[str]) -> dict[str, str | None]:
-    """Guess a channel->filter mapping from filter names; unguessed channels None."""
+def _default_luminance(filters: list[str]) -> str | None:
+    """Return the filter conventionally used as luminance, or ``None``."""
     upper = {f.upper(): f for f in filters}
-    mapping: dict[str, str | None] = {}
-    for channel in CHANNELS:
-        mapping[channel] = next(
-            (upper[name] for name in _CHANNEL_GUESS[channel] if name in upper), None
-        )
-    return mapping
+    return next((upper[name] for name in _LUMINANCE_NAMES if name in upper), None)
+
+
+def _spread_hues(count: int) -> list[str]:
+    """``count`` colours spaced evenly around the hue circle, as ``#rrggbb``.
+
+    The fallback for filter names the guess table does not know (a survey set, or
+    idiosyncratic naming). Even spacing is the neutral choice: it makes every
+    filter visibly distinct without pretending to know what any of them measure.
+    """
+    colors = []
+    for index in range(count):
+        red, green, blue = colorsys.hsv_to_rgb(index / max(count, 1), 1.0, 1.0)
+        colors.append(f"#{round(red * 255):02x}{round(green * 255):02x}{round(blue * 255):02x}")
+    return colors
+
+
+def _default_colors(filters: list[str], luminance: str | None) -> dict[str, str]:
+    """Guess a filter -> colour assignment from the filter names.
+
+    Known names take their conventional colour. If NOT ONE name is recognised the
+    whole set falls back to evenly spaced hues, so an unfamiliar filter set still
+    produces a usable image rather than a black one. The luminance frame is left
+    out: it contributes lightness, not colour.
+    """
+    colored = [f for f in filters if f != luminance]
+    known = {f: _COLOR_GUESS[f.upper()] for f in colored if f.upper() in _COLOR_GUESS}
+    if known:
+        return known
+    return dict(zip(colored, _spread_hues(len(colored))))
 
 
 @process_bp.get("/color")
 def color_schema():
-    """Return the combine-algorithm schema plus the source step's available filters.
+    """Return the combine schema plus the source step's filters and default colours.
 
-    The frontend uses this to render the algorithm choice, the channel->filter
-    dropdowns, and a sensible default mapping. 409 if nothing stacked exists yet.
+    The frontend uses this to render one colour swatch per filter, the luminance
+    choice, and the algorithm menus. 409 if nothing stacked exists yet.
     """
     step, data = _latest_stacked()
     if data is None:
         return jsonify({"error": "no stacked image to colour-combine yet"}), 409
     filters = list(data.filters)
+    luminance = _default_luminance(filters)
     return jsonify(
         {
             "source": step,
             "filters": filters,
-            "channels": list(CHANNELS),
-            "default_mapping": _default_mapping(filters),
+            "default_colors": _default_colors(filters, luminance),
+            "default_luminance": luminance,
+            "default_gains": {f: 1.0 for f in filters if f != luminance},
+            "gain_range": [_MIN_GAIN, _MAX_GAIN],
+            "normalization": NORMALIZATION.to_dict(),
             "combine": COLOR_COMBINE.to_dict(),
+            "luminance": LUMINANCE_APPLY.to_dict(),
         }
     )
 
 
 @process_bp.post("/color")
 def color_combine():
-    """Combine the mapped per-filter frames into an RGB image and store it.
+    """Combine the coloured per-filter frames into an RGB image and store it.
 
-    JSON body: ``{"algorithm": <name>, "params": {...}, "mapping": {channel:
-    filter}}``. Renders from the latest stacked step.
+    JSON body::
+
+        {"algorithm": <name>, "params": {...},
+         "colors": {<filter>: "#rrggbb", ...},
+         "luminance": {"filter": <name>, "algorithm": <name>, "params": {...}}}
+
+    Any number of filters may be given a colour. The ``luminance`` block is
+    optional and only takes effect when it names a filter. Renders from the latest
+    stacked step.
     """
     payload = request.get_json(silent=True) or {}
     algorithm = payload.get("algorithm")
@@ -588,15 +651,89 @@ def color_combine():
         return jsonify({"error": "no stacked image to colour-combine yet"}), 409
 
     try:
-        mapping = _require_mapping(payload.get("mapping"), "mapping")
+        colors = _require_mapping(payload.get("colors"), "colors")
         params = _require_mapping(payload.get("params"), "params")
-        combiner = COLOR_COMBINE.build(algorithm or COLOR_COMBINE.algorithms[0].name, params)
-        rgb = combine_image_data(data, mapping, combiner)
+        combiner = COLOR_COMBINE.build(
+            algorithm or COLOR_COMBINE.default_algorithm.name, params
+        )
+        normalizer = _build_normalizer(payload)
+        gains = _validated_gains(payload.get("gains"))
+        lum_filter, lum_op = _build_luminance(payload)
+        rgb = combine_image_data(
+            data,
+            colors,
+            combiner,
+            normalizer=normalizer,
+            gains=gains,
+            luminance_filter=lum_filter,
+            luminance=lum_op,
+        )
     except (KeyError, ValueError) as exc:
         return jsonify({"error": str(exc)}), 400
 
     _store().put(session_id(), COLOR_KEY, rgb)
-    return jsonify({"shape": list(rgb.shape), "mapping": rgb.mapping})
+    return jsonify(
+        {
+            "shape": list(rgb.shape),
+            "colors": dict(rgb.colors),
+            "gains": gains,
+            "luminance": rgb.luminance,
+        }
+    )
+
+
+#: Bounds on a per-filter gain. 0 mutes a filter's signal entirely; beyond ~4x a
+#: filter's noise dominates the mix long before anything useful is revealed.
+_MIN_GAIN = 0.0
+_MAX_GAIN = 4.0
+
+
+def _build_normalizer(payload: dict) -> object:
+    """Build the channel-normalization operator for a combine request."""
+    block = _require_mapping(payload.get("normalization"), "normalization")
+    name = block.get("algorithm") or NORMALIZATION.default_algorithm.name
+    return NORMALIZATION.build(
+        name, _require_mapping(block.get("params"), "normalization params")
+    )
+
+
+def _validated_gains(raw: object) -> dict[str, float]:
+    """Validate the per-filter gain mapping submitted with a combine request.
+
+    Gains are not a Subprocess parameter -- there is one per filter and the filter
+    set is only known at runtime -- so they are range-checked here instead.
+    """
+    gains = _require_mapping(raw, "gains")
+    validated: dict[str, float] = {}
+    for filt, value in gains.items():
+        try:
+            gain = float(value)
+        except (TypeError, ValueError):
+            raise ValueError(f"gain for {filt!r} must be a number, got {value!r}") from None
+        if not (_MIN_GAIN <= gain <= _MAX_GAIN):
+            raise ValueError(
+                f"gain for {filt!r} must be between {_MIN_GAIN} and {_MAX_GAIN}, got {gain}"
+            )
+        validated[filt] = gain
+    return validated
+
+
+def _build_luminance(payload: dict) -> tuple[str | None, object | None]:
+    """Return ``(filter, operator)`` for a combine request's luminance block.
+
+    Yields ``(None, None)`` when no filter is named, so the operator is never
+    built -- and its parameters never validated -- for a combine that cannot use
+    it.
+    """
+    block = _require_mapping(payload.get("luminance"), "luminance")
+    filt = block.get("filter")
+    if not filt:
+        return None, None
+    name = block.get("algorithm") or LUMINANCE_APPLY.default_algorithm.name
+    operator = LUMINANCE_APPLY.build(
+        name, _require_mapping(block.get("params"), "luminance params")
+    )
+    return str(filt), operator
 
 
 @process_bp.get("/color.png")
@@ -618,8 +755,9 @@ def color_download(fmt: str):
 
     * ``png`` -- the 8-bit RGB image as shown (the display-ready result).
     * ``fits`` -- a 3-plane ``(3, H, W)`` cube (R, G, B), the convention for a
-      colour FITS, with each channel's source filter recorded in the header
-      (``CHANR``/``CHANG``/``CHANB``).
+      colour FITS. The assignment that produced it is recorded as one
+      ``FILTn``/``COLRn`` pair per contributing filter (the count is not fixed at
+      three), plus ``LUMFILT`` for the luminance frame.
 
     Downloads with a descriptive name (``StackLab_color.png`` / ``.fits``).
     """
@@ -637,8 +775,12 @@ def color_download(fmt: str):
         # (H, W, 3) display image -> (3, H, W) channel cube, the colour-FITS layout.
         cube = np.moveaxis(rgb.data, 2, 0)
         hdu = fits.PrimaryHDU(cube)
-        for channel, key in (("red", "CHANR"), ("green", "CHANG"), ("blue", "CHANB")):
-            hdu.header[key] = (rgb.mapping.get(channel) or "", f"{channel} channel filter")
+        # One FILTn/COLRn pair per contributing filter -- the assignment is no
+        # longer a fixed R/G/B triple, so the header grows with the filter set.
+        for index, (filt, color) in enumerate(rgb.colors.items(), start=1):
+            hdu.header[f"FILT{index}"] = (filt, f"filter {index} of {len(rgb.colors)}")
+            hdu.header[f"COLR{index}"] = (color, f"colour assigned to {filt}")
+        hdu.header["LUMFILT"] = (rgb.luminance or "", "luminance filter, if any")
         buffer = io.BytesIO()
         hdu.writeto(buffer)
         return _download_response(buffer.getvalue(), "application/fits", filename)

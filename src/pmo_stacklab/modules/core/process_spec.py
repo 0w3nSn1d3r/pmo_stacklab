@@ -53,8 +53,10 @@ class ProcessSpec(Generic[Op]):
 
         :param configs: a mapping of subprocess name -> ``{"algorithm": <name>,
             "params": {<param>: <value>}}``. A subprocess omitted from ``configs``
-            (or given no algorithm) falls back to its first algorithm with default
-            parameters, so a partial submission still yields a runnable process.
+            (or given no algorithm) falls back to its
+            :attr:`~pmo_stacklab.modules.core.registry.Subprocess.default_algorithm`
+            with default parameters, so a partial submission still yields a
+            runnable process -- and one configured to give a good result.
         :returns: a :class:`Process` whose operators are built, in subprocess
             order, from the chosen algorithms and wired to this spec's coordinator.
         :raises KeyError: if a submitted algorithm name is not offered by its
@@ -76,7 +78,7 @@ class ProcessSpec(Generic[Op]):
                     f"object with an 'algorithm' (and optional 'params'), got "
                     f"{type(choice).__name__}."
                 )
-            algorithm = choice.get("algorithm") or subprocess.algorithms[0].name
+            algorithm = choice.get("algorithm") or subprocess.default_algorithm.name
             params = choice.get("params")
             # The registry erases the operator type to `object`; the spec
             # re-asserts Op, which its subprocess/coordinator pairing guarantees.

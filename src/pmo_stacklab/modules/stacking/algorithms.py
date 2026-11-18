@@ -23,6 +23,7 @@ from .stack import no_rejection, stack_coordinator
 OUTLIER_REJECTION = Subprocess(
     name="outlier_rejection",
     label="Outlier Rejection",
+    default="sigma_clip",
     description=(
         "Mask deviant pixels across the frame stack -- cosmic rays, satellite "
         "trails, and hot pixels that survived calibration -- before coaddition."
@@ -46,8 +47,8 @@ OUTLIER_REJECTION = Subprocess(
                 FloatParam(
                     name="sigma",
                     default=3.0,
-                    minimum=0.0,
-                    maximum=10.0,
+                    minimum=1.0,
+                    maximum=6.0,
                     step=0.1,
                     description="Clipping threshold in standard deviations.",
                 ),
@@ -67,17 +68,17 @@ OUTLIER_REJECTION = Subprocess(
                     name="lower",
                     default=0.05,
                     minimum=0.0,
-                    maximum=0.5,
+                    maximum=0.25,
                     step=0.01,
-                    description="Lower-tail fraction to winsorize (0-0.5).",
+                    description="Lower-tail fraction to winsorize.",
                 ),
                 FloatParam(
                     name="upper",
                     default=0.05,
                     minimum=0.0,
-                    maximum=0.5,
+                    maximum=0.25,
                     step=0.01,
-                    description="Upper-tail fraction to winsorize (0-0.5).",
+                    description="Upper-tail fraction to winsorize.",
                 ),
             ),
         ),
@@ -97,17 +98,17 @@ OUTLIER_REJECTION = Subprocess(
                     name="lower",
                     default=5.0,
                     minimum=0.0,
-                    maximum=50.0,
+                    maximum=25.0,
                     step=0.5,
-                    description="Lower percentile cut (0-50).",
+                    description="Lower percentile cut.",
                 ),
                 FloatParam(
                     name="upper",
                     default=95.0,
-                    minimum=50.0,
+                    minimum=75.0,
                     maximum=100.0,
                     step=0.5,
-                    description="Upper percentile cut (50-100).",
+                    description="Upper percentile cut.",
                 ),
             ),
         ),
@@ -117,6 +118,7 @@ OUTLIER_REJECTION = Subprocess(
 COADDITION = Subprocess(
     name="coaddition",
     label="Coaddition",
+    default="mean",
     description="Combine the surviving pixels at each position into one value.",
     algorithms=(
         Algorithm(
@@ -143,8 +145,8 @@ COADDITION = Subprocess(
                 FloatParam(
                     name="c",
                     default=6.0,
-                    minimum=1.0,
-                    maximum=12.0,
+                    minimum=3.0,
+                    maximum=9.0,
                     step=0.5,
                     description="Tuning constant; smaller rejects harder (typical 4-8).",
                 ),
@@ -164,8 +166,8 @@ COADDITION = Subprocess(
                 FloatParam(
                     name="epsilon",
                     default=1.0,
-                    minimum=0.001,
-                    maximum=1000.0,
+                    minimum=0.1,
+                    maximum=100.0,
                     step=0.1,
                     description="Variance floor; bounds the weight of faint/zero pixels.",
                 ),
@@ -174,10 +176,41 @@ COADDITION = Subprocess(
     ),
 )
 
+# -- DEMO: dynamic GUI loading ------------------------------------------------
+# Uncomment DEMO_SUBPROCESS below AND add it to STACK.subprocesses, then reload
+# the Stack page: a new "Demo Subprocess" config menu appears automatically,
+# rendered from this schema alone -- no frontend change. (It is display-only; the
+# Stack coordinator still uses the first two operators, so leave it commented for
+# real runs.)
+#
+# DEMO_SUBPROCESS = Subprocess(
+#     name="demo",
+#     label="Demo Subprocess",
+#     description="Added purely to demonstrate schema-driven GUI loading.",
+#     algorithms=(
+#         Algorithm(
+#             name="demo_algo",
+#             label="Demo Algorithm",
+#             description="A do-nothing option with one slider.",
+#             builder=lambda strength: no_rejection,
+#             parameters=(
+#                 FloatParam(
+#                     name="strength",
+#                     default=1.0,
+#                     minimum=0.0,
+#                     maximum=10.0,
+#                     step=0.1,
+#                     description="Demonstration parameter (has no effect).",
+#                 ),
+#             ),
+#         ),
+#     ),
+# )
+
 #: The Stack process: outlier rejection then coaddition, collapsed per filter by
 #: the Stack coordinator (see :func:`stack_coordinator`).
 STACK = ProcessSpec(
     name="Stack",
-    subprocesses=(OUTLIER_REJECTION, COADDITION),
+    subprocesses=(OUTLIER_REJECTION, COADDITION),  # add: , DEMO_SUBPROCESS
     coordinator=stack_coordinator,
 )

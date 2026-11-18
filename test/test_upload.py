@@ -146,6 +146,52 @@ class UploadEndpointTests(unittest.TestCase):
         self.assertEqual(resp.status_code, 413)
         self.assertIn("too large", resp.get_json()["error"])
 
+    def test_upload_ignores_unselected_file_inputs(self) -> None:
+        # Regression: a browser serialises an <input type="file"> with nothing
+        # selected as a real multipart part with an empty filename and a zero-byte
+        # body. The upload form has four role inputs, so a lights-only upload --
+        # the common case -- arrives with three such placeholders. They must be
+        # skipped; feeding them to the loader made astropy report "Empty or
+        # corrupt FITS file" about the user's perfectly good frames.
+        empty = (io.BytesIO(b""), "")
+        resp = self.client.post(
+            "/api/upload",
+            data={
+                "lights": [(_fits_bytes(100.0, filt="R"), "l1.fits")],
+                "darks": empty,
+                "bias": (io.BytesIO(b""), ""),
+                "flats": (io.BytesIO(b""), ""),
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(resp.status_code, 200, resp.get_json())
+        body = resp.get_json()
+        self.assertEqual(body["filters"]["R"]["frames"], 1)
+        # The placeholders must not be counted as calibration frames either.
+        self.assertEqual(body["calibration"]["darks"], 0)
+        self.assertEqual(body["calibration"]["bias"], 0)
+        self.assertEqual(body["calibration"]["flats"], {})
+
+    def test_unselected_inputs_do_not_count_toward_frame_limit(self) -> None:
+        # The empty placeholders are not frames, so they must not consume the
+        # per-upload frame budget.
+        app = build_app({"MAX_FRAMES_PER_UPLOAD": 2})
+        client = app.test_client()
+        resp = client.post(
+            "/api/upload",
+            data={
+                "lights": [
+                    (_fits_bytes(1.0, filt="R"), "l1.fits"),
+                    (_fits_bytes(2.0, filt="R"), "l2.fits"),
+                ],
+                "darks": (io.BytesIO(b""), ""),
+                "bias": (io.BytesIO(b""), ""),
+                "flats": (io.BytesIO(b""), ""),
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(resp.status_code, 200, resp.get_json())
+
     def test_upload_bad_fits_returns_400(self) -> None:
         resp = self.client.post(
             "/api/upload",

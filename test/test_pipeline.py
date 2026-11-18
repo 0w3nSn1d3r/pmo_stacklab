@@ -19,6 +19,24 @@ def _light(value: float, *, filt: str = "R", exptime: float | None = None) -> CC
     return CCDData(np.full((4, 4), float(value), dtype=float), unit="adu", meta=meta)
 
 
+_STARS = [(15, 20), (40, 50), (30, 12), (50, 25), (22, 45), (10, 55), (45, 38),
+          (18, 33), (35, 28), (52, 48), (28, 58), (48, 14), (12, 40), (38, 8)]
+
+
+def _star_light(shift: tuple[int, int] = (0, 0), filt: str = "R") -> CCDData:
+    """A light frame with enough stars for star-matching registration to solve."""
+    img = np.full((64, 64), 10.0)
+    for row, col in _STARS:
+        r, c = row + shift[0], col + shift[1]
+        if 2 <= r < 62 and 2 <= c < 62:
+            img[r, c] += 1000
+            img[r + 1, c] += 400
+            img[r - 1, c] += 400
+            img[r, c + 1] += 400
+            img[r, c - 1] += 400
+    return CCDData(img, unit="adu", meta={"FILTER": filt})
+
+
 # The real Calibrate -> Reproject -> Stack pipeline, as configured in app ORDER.
 SPEC = PipelineSpec(processes=(CALIBRATE, REPROJECT, STACK))
 
@@ -57,8 +75,10 @@ class PipelineRunTests(unittest.TestCase):
         self.assertEqual(float(out.lights["R"][0].data.mean()), 82.0)
 
     def test_empty_recipe_uses_defaults(self) -> None:
-        # Every process built from its first-algorithm defaults must still run.
-        img = ImageData.from_frames([_light(3.0), _light(5.0)])
+        # Every process built from its declared defaults must still run. The
+        # default registration is star matching, so this needs a frame with stars
+        # in it -- a flat field would give astroalign nothing to match.
+        img = ImageData.from_frames([_star_light(), _star_light(shift=(2, -1))])
         out = SPEC.build().run(img)
         self.assertTrue(out.is_stacked)
 

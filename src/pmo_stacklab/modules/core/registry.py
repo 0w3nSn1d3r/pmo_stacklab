@@ -90,13 +90,22 @@ class Subprocess:
     backend uses it to build the chosen, configured operator.
 
     :param name: the subprocess's identifier (e.g. ``"outlier_rejection"``).
-    :param algorithms: the algorithms the user may choose between for this slot.
+    :param algorithms: the algorithms the user may choose between for this slot,
+        in the order they are presented. That order is pedagogical -- several
+        subprocesses deliberately lead with a deliberately-inferior baseline (a
+        ``none``) so the student can see what the step is *for*.
+    :param default: name of the algorithm selected when the user expresses no
+        preference; empty means the first. This is kept separate from the display
+        order precisely because the two want different things: the list should
+        open with the instructive baseline, while an untouched pipeline should
+        still produce a good image.
     :param label: optional human-facing display name (defaults to ``name``).
     :param description: optional explanation for the GUI / pedagogy.
     """
 
     name: str
     algorithms: tuple[Algorithm, ...]
+    default: str = ""
     label: str = ""
     description: str = ""
 
@@ -106,6 +115,15 @@ class Subprocess:
             if algorithm.name == name:
                 return algorithm
         raise KeyError(f"subprocess {self.name!r} has no algorithm {name!r}")
+
+    @property
+    def default_algorithm(self) -> Algorithm:
+        """The algorithm to use when the user submits no explicit choice.
+
+        :raises KeyError: if :attr:`default` names an algorithm this subprocess
+            does not offer (a declaration bug, surfaced on first use).
+        """
+        return self.algorithm(self.default) if self.default else self.algorithms[0]
 
     def build(self, name: str, raw_params: Mapping[str, object] | None = None) -> object:
         """Build the configured callable for the chosen algorithm ``name``.
@@ -124,5 +142,6 @@ class Subprocess:
             "name": self.name,
             "label": self.label or self.name,
             "description": self.description,
+            "default": self.default_algorithm.name,
             "algorithms": [algorithm.to_dict() for algorithm in self.algorithms],
         }

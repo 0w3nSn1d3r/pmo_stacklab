@@ -8,8 +8,20 @@ Houses the building blocks shared across all processes: the generic
 schema). Kept deliberately light to import (only astropy), so depending on core
 does not drag in the heavy per-process science modules.
 """
-from .color import COLOR_COMBINE
-from .color_combine import combine_image_data
+from .color import COLOR_COMBINE, LUMINANCE_APPLY, NORMALIZATION
+from .color_combine import (
+    Combiner,
+    Normalizer,
+    apply_gain,
+    build_minmax_normalizer,
+    build_percentile_normalizer,
+    build_sky_normalizer,
+    combine_image_data,
+    mix_colors,
+    normalize_plane,
+    parse_color,
+)
+from .luminance import LuminanceOp
 from .errors import PipelineError
 from .image_data import ImageData
 from .loader import DEFAULT_UNIT, load_frame, load_frames, load_image_data
@@ -38,7 +50,19 @@ __all__ = [
     "render_png",
     "frame_metrics",
     "COLOR_COMBINE",
+    "LUMINANCE_APPLY",
+    "NORMALIZATION",
+    "Combiner",
+    "Normalizer",
+    "apply_gain",
+    "build_minmax_normalizer",
+    "build_percentile_normalizer",
+    "build_sky_normalizer",
+    "LuminanceOp",
     "combine_image_data",
+    "mix_colors",
+    "normalize_plane",
+    "parse_color",
     "Parameter",
     "FloatParam",
     "IntParam",

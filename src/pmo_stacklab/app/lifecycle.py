@@ -35,3 +35,4 @@ def run(host="127.0.0.1", port=5000, debug=True, config=None):
     """
     app = build_app(config)
     app.run(host=host, port=port, debug=debug)
+    print(app.jinja_loader.searchpath)

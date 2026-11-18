@@ -29,7 +29,14 @@ PIPELINE = PipelineSpec(processes=ORDER)
 #   Reproject  : astroalign star-matching (needs no WCS) + bilinear resampling.
 #   Stack      : kappa-sigma clipping (sigma=3) then mean -- the standard, robust
 #                best-SNR default.
-#   Post-Process: global-median background, percentile scaling, asinh stretch.
+#   Post-Process: 2-D background model (removes gradients and vignetting, not
+#                just a pedestal), ZScale limits (which pick cut levels from the
+#                sky distribution, so filters of very different depth come out
+#                comparably exposed), then a moderate asinh.
+#
+# This mirrors each subprocess's declared ``default``, so Quick Stack and an
+# untouched step-by-step run agree; the recipe is spelled out rather than left
+# implicit so a saved user recipe has a complete, explicit baseline to diff from.
 DEFAULT_QUICKSTACK_RECIPE: dict[str, dict[str, dict[str, object]]] = {
     "Calibrate": {
         "bias_subtraction": {"algorithm": "subtract", "params": {}},
@@ -45,8 +52,8 @@ DEFAULT_QUICKSTACK_RECIPE: dict[str, dict[str, dict[str, object]]] = {
         "coaddition": {"algorithm": "mean", "params": {}},
     },
     "Post-Process": {
-        "background": {"algorithm": "global", "params": {}},
-        "intensity_scaling": {"algorithm": "percentile", "params": {"percentile": 99.0}},
-        "stretch": {"algorithm": "asinh", "params": {"a": 0.1}},
+        "background": {"algorithm": "sep_2d", "params": {"box_size": 64}},
+        "intensity_scaling": {"algorithm": "zscale", "params": {"contrast": 0.25}},
+        "stretch": {"algorithm": "asinh", "params": {"a": 0.5}},
     },
 }
