@@ -11,10 +11,10 @@ disk-backed, session-keyed store lands (see the deployment model), its
 initialisation and graceful teardown -- e.g. flushing caches or evicting expired
 sessions on shutdown -- will also be wired up in this module.
 """
-from .factory import build_app
+from ..app.factory import build_app
 
 
-def run(host="127.0.0.1", port=5000, debug=True, config=None):
+def run(host="127.0.0.1", port=5000, debug=False, config=None):
     """Build the application and start the development server.
 
     This is the entry point used by ``python -m pmo_stacklab`` (see

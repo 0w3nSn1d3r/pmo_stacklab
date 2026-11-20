@@ -1,7 +1,13 @@
 """Application factory for PMO StackLab."""
+import sys
 import os
 
 from flask import Flask
+
+
+def resource_path(rel):
+    base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base, rel)
 
 
 def build_app(config=None):
@@ -10,9 +16,13 @@ def build_app(config=None):
     :param config: optional mapping of config overrides, applied last.
     :return: a configured :class:`flask.Flask` instance.
     """
+
     # Templates and static assets live at the package root
     # (pmo_stacklab/templates, pmo_stacklab/static), one level up from app/.
-    pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if getattr(sys, "frozen", False):
+        pkg_root = sys._MEIPASS          # where --add-data files are unpacked
+    else:
+        pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     app = Flask(
         __name__,
@@ -36,7 +46,8 @@ def build_app(config=None):
             os.path.join(app.instance_path, "quickstack.json"),
         ),
         MAX_CONTENT_LENGTH=int(
-            os.environ.get("PMO_STACKLAB_MAX_UPLOAD_BYTES", 2 * 1024 * 1024 * 1024)
+            os.environ.get("PMO_STACKLAB_MAX_UPLOAD_BYTES",
+                           2 * 1024 * 1024 * 1024)
         ),  # 2 GiB total request body
         MAX_FRAMES_PER_UPLOAD=int(
             os.environ.get("PMO_STACKLAB_MAX_FRAMES", 500)
